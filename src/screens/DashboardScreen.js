@@ -27,11 +27,11 @@ export default function DashboardScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Ionicons name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Community Pulse</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Ionicons name="notifications" size={24} color="white" />
                     <View style={styles.badge} />
                 </TouchableOpacity>

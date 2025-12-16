@@ -16,6 +16,7 @@ import ReportScreen from './src/screens/ReportScreen';
 import MapScreen from './src/screens/MapScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import UserDashboardScreen from './src/screens/UserDashboardScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
@@ -83,10 +84,18 @@ function BottomTabNavigator() {
           ),
         }}
       />
-      {/* Hidden UserDashboard Tab if needed, based on previous code */}
+      {/* Hidden Screens */}
       <Tab.Screen
         name="UserDashboard"
         component={UserDashboardScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{
           tabBarButton: () => null,
           tabBarStyle: { display: 'none' },

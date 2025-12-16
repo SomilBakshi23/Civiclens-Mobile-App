@@ -60,7 +60,7 @@ export default function HomeScreen({ navigation }) {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Feather name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <View style={styles.logoContainer}>
@@ -69,7 +69,7 @@ export default function HomeScreen({ navigation }) {
                     </View>
                     <Text style={styles.logoText}>CivicLens</Text>
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Ionicons name="notifications" size={24} color="white" />
                     <View style={styles.badge} />
                 </TouchableOpacity>

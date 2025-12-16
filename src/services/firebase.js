@@ -1,7 +1,8 @@
 // src/services/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,15 +18,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics (Handling potential React Native env issues gracefully)
-// const analytics = getAnalytics(app); // Disabled for React Native / Expo Go to prevent warnings about Cookies/IndexedDB
-
-// Initialize Auth with Persistence
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-
+// Initialize Auth with persistence
 const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+    persistence: getReactNativePersistence(AsyncStorage)
 });
 
 // Initialize Firestore

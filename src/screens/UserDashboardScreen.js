@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { AuthContext } from '../context/AuthContext';
 
 export default function UserDashboardScreen({ navigation }) {
-    // Mock user data
+    const { logout, user, profile, isGuest } = useContext(AuthContext);
+
+    // Mock user data (keep for stats visuals)
     const userStats = {
-        starRating: 4.5,
+        starRating: profile?.civicScore ? (profile.civicScore / 100) : 4.5, // Mock calc or use default
         totalReports: 42,
         verifiedReports: 38,
         ranking: 'Top 5%'
@@ -32,6 +35,17 @@ export default function UserDashboardScreen({ navigation }) {
         } else {
             setSelectedCategory(id);
         }
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            "Log Out",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Log Out", style: "destructive", onPress: () => logout() }
+            ]
+        );
     };
 
     const renderStars = (rating) => {
@@ -66,12 +80,16 @@ export default function UserDashboardScreen({ navigation }) {
                         <View style={styles.avatar}>
                             <Ionicons name="person" size={40} color="white" />
                         </View>
-                        <View style={styles.rankBadge}>
-                            <MaterialCommunityIcons name="trophy" size={14} color="white" />
-                        </View>
+                        {!isGuest && (
+                            <View style={styles.rankBadge}>
+                                <MaterialCommunityIcons name="trophy" size={14} color="white" />
+                            </View>
+                        )}
                     </View>
 
-                    <Text style={styles.userName}>Responsible Citizen</Text>
+                    <Text style={styles.userName}>
+                        {isGuest ? "Responsible Citizen" : (profile?.name || "Responsible Citizen")}
+                    </Text>
                     <Text style={styles.userSub}>Making the city better, one report at a time</Text>
 
                     <View style={styles.starsContainer}>
@@ -132,7 +150,7 @@ export default function UserDashboardScreen({ navigation }) {
                 </View>
 
                 {/* Logout Section */}
-                <TouchableOpacity style={styles.logoutButton} onPress={() => alert('Logged Out')}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={24} color="#EF4444" style={{ marginRight: 8 }} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
