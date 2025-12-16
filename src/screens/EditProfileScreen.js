@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { updateUserProfile } from '../services/userService';
@@ -11,6 +12,7 @@ export default function EditProfileScreen({ navigation }) {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Initialize with real data
@@ -18,11 +20,42 @@ export default function EditProfileScreen({ navigation }) {
         if (profile) {
             setFullName(profile.name || '');
             setPhone(profile.phone || '');
+            // Default fallback if no photoURL exists
+            setAvatarUrl(profile.photoURL || 'https://api.dicebear.com/7.x/avataaars/png?seed=CivicLensUsers');
         }
         if (user) {
             setEmail(user.email || '');
         }
     }, [profile, user]);
+
+    const pickImage = async () => {
+        if (isGuest) {
+            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setAvatarUrl(result.assets[0].uri);
+        }
+    };
+
+    const randomizeAvatar = () => {
+        if (isGuest) {
+            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            return;
+        }
+
+        const randomSeed = Math.random().toString(36).substring(7);
+        const newAvatar = `https://api.dicebear.com/7.x/avataaars/png?seed=${randomSeed}`;
+        setAvatarUrl(newAvatar);
+    };
 
     const handleSave = async () => {
         if (isGuest) {
@@ -39,6 +72,7 @@ export default function EditProfileScreen({ navigation }) {
         const updateData = {
             name: fullName.trim(),
             phone: phone.trim(),
+            photoURL: avatarUrl,
         };
 
         const result = await updateUserProfile(user.uid, updateData);
@@ -71,16 +105,23 @@ export default function EditProfileScreen({ navigation }) {
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarContainer}>
                             <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }}
+                                source={{ uri: avatarUrl }}
                                 style={styles.avatar}
                             />
-                            <TouchableOpacity style={styles.cameraButton}>
+                            <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
                                 <Ionicons name="camera" size={20} color="white" />
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity>
-                            <Text style={styles.changePhotoText}>Change Profile Photo</Text>
-                        </TouchableOpacity>
+
+                        <View style={styles.avatarActions}>
+                            <TouchableOpacity onPress={pickImage}>
+                                <Text style={styles.changePhotoText}>Change Photo</Text>
+                            </TouchableOpacity>
+                            <Text style={{ color: colors.textSecondary }}>|</Text>
+                            <TouchableOpacity onPress={randomizeAvatar}>
+                                <Text style={styles.randomizeText}>Randomize Info</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Form Fields */}
@@ -190,7 +231,7 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         position: 'relative',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     avatar: {
         width: 100,
@@ -198,6 +239,7 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         borderWidth: 2,
         borderColor: colors.surfaceLight,
+        backgroundColor: colors.surface,
     },
     cameraButton: {
         position: 'absolute',
@@ -212,8 +254,18 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: colors.background,
     },
+    avatarActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
     changePhotoText: {
         color: colors.primary,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    randomizeText: {
+        color: colors.accent || '#F59E0B',
         fontWeight: '600',
         fontSize: 14,
     },
@@ -242,46 +294,11 @@ const styles = StyleSheet.create({
     inputIcon: {
         marginRight: 12,
     },
-    verifiedIcon: {
-        marginLeft: 8,
-    },
     input: {
         flex: 1,
         color: 'white',
         fontSize: 16,
         height: '100%',
-    },
-    helperTextContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 4,
-        gap: 6,
-    },
-    helperText: {
-        color: colors.textSecondary,
-        fontSize: 11,
-    },
-    strengthContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        gap: 12,
-    },
-    strengthBarRow: {
-        flexDirection: 'row',
-        gap: 4,
-        flex: 1,
-        maxWidth: 150,
-    },
-    strengthBar: {
-        height: 4,
-        flex: 1,
-        borderRadius: 2,
-    },
-    strengthText: {
-        color: '#10B981',
-        fontSize: 12,
-        fontWeight: '600',
     },
     footer: {
         padding: 24,
@@ -319,3 +336,4 @@ const styles = StyleSheet.create({
         fontSize: 11,
     },
 });
+
