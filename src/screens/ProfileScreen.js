@@ -150,7 +150,7 @@ export default function ProfileScreen({ navigation }) {
                 {/* Account Settings */}
                 <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 16, paddingHorizontal: 20 }]}>Account</Text>
 
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('EditProfile')}>
                     <View style={styles.menuIconBox}>
                         <Ionicons name="person" size={20} color={colors.primary} />
                     </View>
@@ -158,7 +158,7 @@ export default function ProfileScreen({ navigation }) {
                     <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('CivicPreferences')}>
                     <View style={styles.menuIconBox}>
                         <Ionicons name="options" size={20} color={colors.primary} />
                     </View>
@@ -166,7 +166,7 @@ export default function ProfileScreen({ navigation }) {
                     <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Privacy')}>
                     <View style={styles.menuIconBox}>
                         <Ionicons name="lock-closed" size={20} color={colors.primary} />
                     </View>
