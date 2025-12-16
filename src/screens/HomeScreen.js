@@ -60,7 +60,7 @@ export default function HomeScreen({ navigation }) {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Feather name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <View style={styles.logoContainer}>

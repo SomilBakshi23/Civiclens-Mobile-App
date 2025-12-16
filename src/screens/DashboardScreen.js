@@ -27,7 +27,7 @@ export default function DashboardScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Ionicons name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Community Pulse</Text>
