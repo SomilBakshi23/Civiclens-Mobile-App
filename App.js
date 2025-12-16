@@ -22,6 +22,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import CivicPreferencesScreen from './src/screens/CivicPreferencesScreen';
+import IssueDetailsScreen from './src/screens/IssueDetailsScreen';
 
 import CustomTabBar from './src/components/CustomTabBar';
 
@@ -93,6 +94,7 @@ function RootNavigator() {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="CivicPreferences" component={CivicPreferencesScreen} />
+        <Stack.Screen name="IssueDetails" component={IssueDetailsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

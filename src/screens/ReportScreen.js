@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,16 +7,50 @@ import { colors } from '../theme/colors';
 import { createIssue } from '../services/issueService';
 import { calculatePriority } from '../utils/priorityEngine';
 import { AuthContext } from '../context/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
-    const { isGuest, logout, user, profile } = useContext(AuthContext); // Access Auth Context
+    const { isGuest, logout, user, profile } = useContext(AuthContext);
 
     const [description, setDescription] = useState('');
-    const [title, setTitle] = useState(''); // Added title state
-    const [category, setCategory] = useState({ name: 'Infrastructure', icon: 'account-hard-hat' }); // Default category
+    const [title, setTitle] = useState('');
+    const [category, setCategory] = useState({ name: 'Infrastructure', icon: 'account-hard-hat' });
     const [loading, setLoading] = useState(false);
+    const [image, setImage] = useState(null);
+    const [location, setLocation] = useState(null);
+    const [locationAddress, setLocationAddress] = useState('Detecting location...');
+
+    useEffect(() => {
+        (async () => {
+            const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+            const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
+
+            if (locationStatus === 'granted') {
+                try {
+                    let loc = await Location.getCurrentPositionAsync({});
+                    setLocation(loc);
+                    // Optional: Reverse geocode to get address for display
+                    let address = await Location.reverseGeocodeAsync({
+                        latitude: loc.coords.latitude,
+                        longitude: loc.coords.longitude
+                    });
+                    if (address && address.length > 0) {
+                        const addr = address[0];
+                        setLocationAddress(`${addr.street || ''} ${addr.name || ''}, ${addr.city}`);
+                    } else {
+                        setLocationAddress(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
+                    }
+                } catch (e) {
+                    setLocationAddress("Location unavailable");
+                }
+            } else {
+                setLocationAddress("Permission denied");
+            }
+        })();
+    }, []);
 
     // Guest & Incomplete Profile Protection Logic
     if (isGuest || (user && profile && !profile.isProfileComplete)) {
@@ -36,9 +70,27 @@ export default function ReportScreen({ navigation }) {
         );
     }
 
+    const takePhoto = async () => {
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
     const handleSubmit = async () => {
         if (!description.trim() || !title.trim()) {
             Alert.alert("Missing Details", "Please provide a title and description.");
+            return;
+        }
+
+        if (!location) {
+            Alert.alert("Location Missing", "We need your location to report this issue. Please enable permissions.");
             return;
         }
 
@@ -46,13 +98,26 @@ export default function ReportScreen({ navigation }) {
 
         const priority = calculatePriority(category.name + " " + title, 0);
 
+        // Capture current GPS coordinates exactly when submitting
+        let currentLoc = location;
+        try {
+            currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        } catch (e) {
+            // fallback to last known
+        }
+
         const issueData = {
             title: title,
             description: description,
             category: category.name,
             priority: priority,
-            location: '124 Main St. (Auto)', // Location is mocked per requirement
-            imageUrl: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=400', // Mock image for demo
+            status: 'open', // Explicitly set status to open
+            reportedBy: user?.uid, // Bind to current user
+            location: locationAddress,
+            latitude: currentLoc.coords.latitude,
+            longitude: currentLoc.coords.longitude,
+            imageUri: image, // Store local URI for demo
+            imageUrl: image || 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=400', // Fallback
         };
 
         const result = await createIssue(issueData);
@@ -61,7 +126,17 @@ export default function ReportScreen({ navigation }) {
 
         if (result.success) {
             Alert.alert("Report Submitted", "Your issue has been reported and prioritized.", [
-                { text: "OK", onPress: () => navigation.navigate('Home') }
+                {
+                    text: "OK", onPress: () => {
+                        // Clear Form
+                        setTitle('');
+                        setDescription('');
+                        setImage(null);
+                        setCategory({ name: 'Infrastructure', icon: 'account-hard-hat' });
+                        // Navigate away
+                        navigation.navigate('Home');
+                    }
+                }
             ]);
         } else {
             Alert.alert("Error", "Could not submit report. Please try again.");
@@ -80,33 +155,31 @@ export default function ReportScreen({ navigation }) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* AI Camera Section */}
-                <View style={styles.cameraContainer}>
-                    <View style={styles.aiBadge}>
-                        <View style={styles.recordingDot} />
-                        <Text style={styles.aiText}>AI ANALYSIS ACTIVE</Text>
-                    </View>
-                    <View style={styles.flashBtn}>
-                        <Ionicons name="flash" size={16} color="white" />
-                    </View>
-                    <View style={styles.cameraView}>
-                        <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }}
-                            style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
-                        />
-                        <View style={styles.scanTarget}>
-                            <MaterialCommunityIcons name="crop-free" size={48} color="white" />
+                <TouchableOpacity style={styles.cameraContainer} onPress={takePhoto}>
+                    {image ? (
+                        <Image source={{ uri: image }} style={StyleSheet.absoluteFill} />
+                    ) : (
+                        <View style={styles.cameraView}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }}
+                                style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
+                            />
+                            <View style={styles.scanTarget}>
+                                <MaterialCommunityIcons name="camera" size={48} color="white" />
+                                <Text style={{ color: 'white', marginTop: 10, fontWeight: '600' }}>Tap to Take Photo</Text>
+                            </View>
                         </View>
-                    </View>
-                    <View style={styles.detectionOverlay}>
-                        <Text style={styles.detectedTitle}>{title || "Detecting Issue..."}</Text>
-                        <View style={styles.confidenceBadge}>
-                            <MaterialCommunityIcons name="check-decagram" size={14} color="#3B82F6" />
-                            <Text style={styles.confidenceText}>98% Confidence Match</Text>
-                        </View>
-                    </View>
-                </View>
+                    )}
 
-                {/* Title Input (New Requirement) */}
+                    {!image && (
+                        <View style={styles.aiBadge}>
+                            <View style={styles.recordingDot} />
+                            <Text style={styles.aiText}>AI ANALYSIS READY</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                {/* Title Input */}
                 <View style={styles.section}>
                     <Text style={styles.sectionLabel}>ISSUE TITLE</Text>
                     <View style={styles.inputContainerSm}>
@@ -120,7 +193,7 @@ export default function ReportScreen({ navigation }) {
                     </View>
                 </View>
 
-                {/* Category Selection (Simplified for Demo) */}
+                {/* Category Selection */}
                 <View style={styles.tagsRow}>
                     <TouchableOpacity
                         style={[styles.tag, category.name === 'Infrastructure' && styles.activeTag]}
@@ -148,8 +221,8 @@ export default function ReportScreen({ navigation }) {
                             </View>
                         </View>
                         <View style={styles.locationInfo}>
-                            <Text style={styles.addressTitle}>124 Main St. (Auto-detected)</Text>
-                            <Text style={styles.addressSub}>San Francisco, CA 94105</Text>
+                            <Text style={styles.addressTitle}>{locationAddress}</Text>
+                            <Text style={styles.addressSub}>{location ? `Lat: ${location.coords.latitude.toFixed(5)}, Long: ${location.coords.longitude.toFixed(5)}` : "Waiting for GPS..."}</Text>
                         </View>
                     </View>
                 </View>
@@ -166,9 +239,6 @@ export default function ReportScreen({ navigation }) {
                             value={description}
                             onChangeText={setDescription}
                         />
-                        <TouchableOpacity style={styles.micBtn}>
-                            <Ionicons name="mic" size={20} color={colors.textSecondary} />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -253,41 +323,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         letterSpacing: 0.5,
     },
-    flashBtn: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-    },
     scanTarget: {
-        opacity: 0.8,
-    },
-    detectionOverlay: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-    },
-    detectedTitle: {
-        color: 'white',
-        fontSize: 24,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    confidenceBadge: {
-        flexDirection: 'row',
+        opacity: 0.9,
         alignItems: 'center',
-    },
-    confidenceText: {
-        color: '#3B82F6',
-        fontSize: 14,
-        fontWeight: '600',
-        marginLeft: 6,
     },
 
     // Tags
@@ -380,17 +418,6 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         textAlignVertical: 'top',
         flex: 1,
-    },
-    micBtn: {
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: colors.surfaceLight,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
 
     // Submit

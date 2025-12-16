@@ -5,7 +5,9 @@ import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
-import { getAllIssues, upvoteIssue, getDashboardStats } from '../services/issueService';
+import { db } from '../services/firebase';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { upvoteIssue, getDashboardStats } from '../services/issueService';
 import { AuthContext } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
@@ -17,14 +19,35 @@ export default function HomeScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
 
     const loadData = async () => {
-        // Parallel fetch for speed
-        const [fetchedIssues, fetchedStats] = await Promise.all([
-            getAllIssues(),
-            getDashboardStats()
-        ]);
-        setIssues(fetchedIssues);
-        setStats(fetchedStats);
-        setLoading(false);
+        try {
+            // Fetch Dashboard Stats (keep using service or move to firestore later, service is fine for now as it's mock stats)
+            const statsPromise = getDashboardStats();
+
+            // Fetch Real Issues from Firestore
+            const q = query(collection(db, "issues"), orderBy("createdAt", "desc"), limit(20));
+            const querySnapshot = await getDocs(q);
+            const fetchedIssues = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                fetchedIssues.push({
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date() // Handle Firestore Timestamp
+                });
+            });
+
+            const [_, fetchedStats] = await Promise.all([
+                Promise.resolve(), // placeholder
+                statsPromise
+            ]);
+
+            setIssues(fetchedIssues);
+            setStats(fetchedStats);
+        } catch (e) {
+            console.error("Home load error:", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const onRefresh = async () => {
@@ -59,8 +82,12 @@ export default function HomeScreen({ navigation }) {
             return;
         }
 
-        await upvoteIssue(issueId);
-        // Optimistic update could go here, or just reload
+        if (await upvoteIssue(issueId, user.uid)) {
+            // success
+        } else {
+            Alert.alert("Notice", "You have already upvoted this issue.");
+        }
+
         loadData();
     };
 
@@ -158,7 +185,11 @@ export default function HomeScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.mapPreviewCard}>
+                <TouchableOpacity
+                    style={styles.mapPreviewCard}
+                    onPress={() => navigation.navigate('Map')}
+                    activeOpacity={0.9}
+                >
                     <View style={[StyleSheet.absoluteFill, styles.mapPattern]} />
                     <View style={styles.radarEffect}>
                         <View style={styles.radarCircle} />
@@ -180,7 +211,7 @@ export default function HomeScreen({ navigation }) {
                             <Ionicons name="arrow-forward" size={16} color="white" />
                         </View>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Recent Activity (Dynamic) */}
                 <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12 }]}>Recent Activity</Text>
@@ -190,22 +221,29 @@ export default function HomeScreen({ navigation }) {
                 ) : (
                     issues.map((item) => (
                         <View key={item.id} style={{ position: 'relative' }}>
-                            <IssueCard
-                                title={item.title}
-                                location={`${item.priority?.toUpperCase()} • ${item.category}`}
-                                status={item.status}
-                                image={item.imageUrl}
-                                id={item.id}
-                                rightAction={
-                                    <TouchableOpacity
-                                        style={styles.inlineUpvote}
-                                        onPress={() => handleUpvote(item.id)}
-                                    >
-                                        <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
-                                        <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
-                                    </TouchableOpacity>
+                            <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('IssueDetails', {
+                                issue: {
+                                    ...item,
+                                    createdAt: item.createdAt?.toISOString ? item.createdAt.toISOString() : item.createdAt
                                 }
-                            />
+                            })}>
+                                <IssueCard
+                                    title={item.title}
+                                    location={`${item.priority?.toUpperCase()} • ${item.category}`}
+                                    status={item.status}
+                                    image={item.imageUrl}
+                                    id={item.id}
+                                    rightAction={
+                                        <TouchableOpacity
+                                            style={styles.inlineUpvote}
+                                            onPress={() => handleUpvote(item.id)}
+                                        >
+                                            <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
+                                            <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
+                                        </TouchableOpacity>
+                                    }
+                                />
+                            </TouchableOpacity>
                         </View>
                     ))
                 )}
