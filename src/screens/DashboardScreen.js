@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
-        paddingBottom: 100,
+        paddingBottom: 130,
     },
 
     // Stats

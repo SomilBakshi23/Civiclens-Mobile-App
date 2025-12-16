@@ -68,7 +68,7 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.headerTitle}>User Profile</Text>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Header / Profile Card */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>

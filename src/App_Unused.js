@@ -1,3 +1,8 @@
+// !!! WARNING: THIS FILE IS UNUSED !!!
+// The active application entry point is 'Civiclens-Mobile-App/App.js' (root directory).
+// Changes made here will NOT affect the app.
+// Please open the App.js in the root folder.
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
