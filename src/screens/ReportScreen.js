@@ -72,13 +72,18 @@ export default function ReportScreen({ navigation }) {
     const takePhoto = async () => {
         try {
             let result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaType.Images,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: false, // Disabling editing to reduce crash risk on low-memory devices
                 quality: 0.5,
             });
 
             if (!result.canceled) {
-                setImage(result.assets[0].uri);
+                const asset = result.assets[0];
+                if (asset.width < 200 || asset.height < 200) {
+                    Alert.alert("Image Error", "The image is too small. Please take a clear photo of the issue.");
+                    return;
+                }
+                setImage(asset.uri);
             }
         } catch (e) {
             Alert.alert("Camera Error", "Could not open camera. Please try again or check permissions.");
@@ -92,6 +97,11 @@ export default function ReportScreen({ navigation }) {
             return;
         }
 
+        if (!image) {
+            Alert.alert("Evidence Required", "Please upload a clear image of the issue to allow AI verification.");
+            return;
+        }
+
         if (!location) {
             Alert.alert("Location Missing", "We need your location to report this issue. Please enable permissions.");
             return;
@@ -99,7 +109,12 @@ export default function ReportScreen({ navigation }) {
 
         setLoading(true);
 
-        const priority = calculatePriority(category.name + " " + title, 0);
+        const { priority, reason } = calculatePriority({
+            category: category.name,
+            upvotes: 0,
+            imageUri: image,
+            title: title
+        });
 
         // Capture current GPS coordinates exactly when submitting
         let currentLoc = location;
@@ -114,6 +129,7 @@ export default function ReportScreen({ navigation }) {
             description: description,
             category: category.name,
             priority: priority,
+            priorityReason: reason,
             status: 'open', // Explicitly set status to open
             reportedBy: user?.uid, // Bind to current user
             location: locationAddress,

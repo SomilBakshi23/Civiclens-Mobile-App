@@ -1,6 +1,7 @@
 // src/services/issueService.js
 import { db } from './firebase';
 import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc, getCountFromServer, where } from "firebase/firestore";
+import { calculatePriority } from '../utils/priorityEngine';
 
 const ISSUES_COLLECTION = 'issues';
 
@@ -102,6 +103,16 @@ export const upvoteIssue = async (issueId, userId) => {
     if (issue) {
         // Prevent local double count if we tracked it locally (simplified for demo)
         issue.upvotes = (issue.upvotes || 0) + 1;
+
+        // Recalculate Priority Dynamically
+        const { priority, reason } = calculatePriority({
+            category: issue.category,
+            upvotes: issue.upvotes,
+            imageUri: issue.imageUrl || issue.imageUri,
+            title: issue.title
+        });
+        issue.priority = priority;
+        issue.priorityReason = reason;
     }
 
     if (issueId.startsWith('mock') || issueId.startsWith('local')) return true;
@@ -116,17 +127,34 @@ export const upvoteIssue = async (issueId, userId) => {
 
         // We will do a check to be nicer
         const docSnap = await getDoc(issueRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const likedBy = data.likedBy || [];
-            if (likedBy.includes(userId)) {
-                return false; // Already liked
-            }
+
+        if (!docSnap.exists()) {
+            console.error("Issue not found");
+            return false;
         }
+
+        const data = docSnap.data();
+        const likedBy = data.likedBy || [];
+
+        if (likedBy.includes(userId)) {
+            return false; // Already liked
+        }
+
+        const currentUpvotes = (data.upvotes || 0) + 1;
+
+        // Recalculate Priority for Real Backend Data
+        const { priority, reason } = calculatePriority({
+            category: data.category,
+            upvotes: currentUpvotes,
+            imageUri: data.imageUrl || data.imageUri,
+            title: data.title
+        });
 
         await updateDoc(issueRef, {
             upvotes: increment(1),
-            likedBy: arrayUnion(userId)
+            likedBy: arrayUnion(userId),
+            priority: priority,
+            priorityReason: reason
         });
         return true;
     } catch (e) {

@@ -144,8 +144,11 @@ export default function MapScreen({ navigation }) {
                             <View style={styles.calloutContainer}>
                                 <Text style={styles.calloutTitle}>{issue.title}</Text>
                                 <Text style={[styles.calloutStatus, { color: getMarkerColor(issue.priority) }]}>
-                                    {issue.status ? issue.status.toUpperCase() : "OPEN"}
+                                    AI PRIORITY: {issue.priority ? issue.priority.toUpperCase() : 'MEDIUM'}
                                 </Text>
+                                {issue.priorityReason ? (
+                                    <Text style={styles.reasonText}>Reason: {issue.priorityReason}</Text>
+                                ) : null}
                             </View>
                         </Callout>
                     </Marker>
@@ -155,7 +158,7 @@ export default function MapScreen({ navigation }) {
             {/* Top Overlays */}
             <View style={styles.topContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.openDrawer ? navigation.openDrawer() : null}>
+                    <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.navigate('UserDashboard')}>
                         <Ionicons name="menu" size={24} color="#64748B" />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
@@ -258,6 +261,13 @@ const styles = StyleSheet.create({
     calloutStatus: {
         fontSize: 10,
         fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    reasonText: {
+        fontSize: 10,
+        color: '#64748B',
+        textAlign: 'center',
+        fontStyle: 'italic'
     },
 
     // Top Container
