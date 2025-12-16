@@ -1,14 +1,58 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { AuthContext } from '../context/AuthContext';
+import { updateUserProfile } from '../services/userService';
 
 export default function EditProfileScreen({ navigation }) {
-    const [fullName, setFullName] = useState('Alex Rivera');
-    const [email, setEmail] = useState('alex.rivera@civic.org');
-    const [phone, setPhone] = useState('+1 (555) 012-3456');
-    const [password, setPassword] = useState('password123');
-    const [showPassword, setShowPassword] = useState(false);
+    const { user, profile, refreshProfile, isGuest } = useContext(AuthContext);
+
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Initialize with real data
+    useEffect(() => {
+        if (profile) {
+            setFullName(profile.name || '');
+            setPhone(profile.phone || '');
+        }
+        if (user) {
+            setEmail(user.email || '');
+        }
+    }, [profile, user]);
+
+    const handleSave = async () => {
+        if (isGuest) {
+            Alert.alert("Guest Mode", "You cannot edit a guest profile.");
+            return;
+        }
+
+        if (!fullName.trim()) {
+            Alert.alert("Required", "Full Name cannot be empty.");
+            return;
+        }
+
+        setLoading(true);
+        const updateData = {
+            name: fullName.trim(),
+            phone: phone.trim(),
+        };
+
+        const result = await updateUserProfile(user.uid, updateData);
+        setLoading(false);
+
+        if (result.success) {
+            await refreshProfile();
+            Alert.alert("Success", "Profile updated successfully.", [
+                { text: "OK", onPress: () => navigation.goBack() }
+            ]);
+        } else {
+            Alert.alert("Error", "Failed to update profile. Please try again.");
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -27,7 +71,7 @@ export default function EditProfileScreen({ navigation }) {
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarContainer}>
                             <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }}
+                                source={{ uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }}
                                 style={styles.avatar}
                             />
                             <TouchableOpacity style={styles.cameraButton}>
@@ -57,22 +101,17 @@ export default function EditProfileScreen({ navigation }) {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>EMAIL ADDRESS</Text>
-                            <View style={styles.inputWrapper}>
+                            <Text style={styles.label}>EMAIL ADDRESS (Read Only)</Text>
+                            <View style={[styles.inputWrapper, { opacity: 0.7, backgroundColor: colors.background }]}>
                                 <MaterialCommunityIcons name="email" size={20} color={colors.textSecondary} style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
                                     value={email}
-                                    onChangeText={setEmail}
-                                    placeholder="Enter email"
+                                    editable={false}
+                                    placeholder="Email"
                                     placeholderTextColor={colors.textTertiary}
-                                    keyboardType="email-address"
                                 />
-                                <MaterialCommunityIcons name="check-decagram" size={20} color={colors.success} style={styles.verifiedIcon} />
-                            </View>
-                            <View style={styles.helperTextContainer}>
-                                <MaterialCommunityIcons name="lock" size={12} color={colors.textSecondary} />
-                                <Text style={styles.helperText}>Official communication channel</Text>
+                                <MaterialCommunityIcons name="lock" size={16} color={colors.textSecondary} />
                             </View>
                         </View>
 
@@ -84,39 +123,10 @@ export default function EditProfileScreen({ navigation }) {
                                     style={styles.input}
                                     value={phone}
                                     onChangeText={setPhone}
-                                    placeholder="Enter phone number"
+                                    placeholder="+1 (555) 000-0000"
                                     placeholderTextColor={colors.textTertiary}
                                     keyboardType="phone-pad"
                                 />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>PASSWORD</Text>
-                            <View style={styles.inputWrapper}>
-                                <MaterialCommunityIcons name="lock" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholder="Enter password"
-                                    placeholderTextColor={colors.textTertiary}
-                                    secureTextEntry={!showPassword}
-                                />
-                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Password Strength Indicator */}
-                            <View style={styles.strengthContainer}>
-                                <View style={styles.strengthBarRow}>
-                                    <View style={[styles.strengthBar, { backgroundColor: '#10B981' }]} />
-                                    <View style={[styles.strengthBar, { backgroundColor: '#10B981' }]} />
-                                    <View style={[styles.strengthBar, { backgroundColor: '#10B981' }]} />
-                                    <View style={[styles.strengthBar, { backgroundColor: colors.surfaceLight }]} />
-                                </View>
-                                <Text style={styles.strengthText}>Strong</Text>
                             </View>
                         </View>
 
@@ -125,9 +135,19 @@ export default function EditProfileScreen({ navigation }) {
                 </ScrollView>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.saveButton} onPress={() => navigation.goBack()}>
-                        <MaterialCommunityIcons name="content-save" size={20} color="white" style={{ marginRight: 8 }} />
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                    <TouchableOpacity
+                        style={[styles.saveButton, loading && { opacity: 0.7 }]}
+                        onPress={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="content-save" size={20} color="white" style={{ marginRight: 8 }} />
+                                <Text style={styles.saveButtonText}>Save Changes</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                     <View style={styles.securityNote}>
                         <MaterialCommunityIcons name="shield-check" size={14} color={colors.textSecondary} />

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { app, auth } from '../services/firebase';
-import { createUserProfile, getUserProfile } from '../services/userService';
+import { createUserSkeleton, getUserProfile } from '../services/userService';
 
 // Export Auth & Profile Context
 export const AuthContext = createContext();
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
                 } else {
                     // Critical fallback if auth exists but no profile (e.g. manual console creation)
                     // Attempt to create one lazily
-                    const createRes = await createUserProfile(currentUser.uid, currentUser.email);
+                    const createRes = await createUserSkeleton(currentUser.uid, currentUser.email);
                     if (createRes.success) setProfile(createRes.profile);
                 }
             } else {
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
             const user = userCredential.user;
 
             // Immediately create profile doc
-            await createUserProfile(user.uid, user.email);
+            await createUserSkeleton(user.uid, user.email);
 
             return { success: true };
         } catch (error) {

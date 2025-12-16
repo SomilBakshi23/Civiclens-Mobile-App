@@ -11,24 +11,26 @@ import { AuthContext } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
-    const { isGuest, logout } = useContext(AuthContext); // Access Auth Context
+    const { isGuest, logout, user, profile } = useContext(AuthContext); // Access Auth Context
 
     const [description, setDescription] = useState('');
     const [title, setTitle] = useState(''); // Added title state
     const [category, setCategory] = useState({ name: 'Infrastructure', icon: 'account-hard-hat' }); // Default category
     const [loading, setLoading] = useState(false);
 
-    // Guest Protection Logic
-    if (isGuest) {
+    // Guest & Incomplete Profile Protection Logic
+    if (isGuest || (user && profile && !profile.isProfileComplete)) {
         return (
             <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
                 <MaterialCommunityIcons name="account-lock" size={64} color={colors.textSecondary} style={{ marginBottom: 20 }} />
-                <Text style={styles.headerTitle}>Login Required</Text>
+                <Text style={styles.headerTitle}>{isGuest ? "Login Required" : "Profile Incomplete"}</Text>
                 <Text style={[styles.heroSubtitle, { marginTop: 10, marginBottom: 30 }]}>
-                    You must be logged in to report issues. Guest access is read-only.
+                    {isGuest
+                        ? "You must be logged in to report issues. Guest access is read-only."
+                        : "You must complete your profile setup to report issues."}
                 </Text>
                 <TouchableOpacity style={styles.primaryButton} onPress={() => logout()}>
-                    <Text style={styles.buttonText}>Go to Login</Text>
+                    <Text style={styles.buttonText}>{isGuest ? "Go to Login" : "Complete Profile"}</Text>
                 </TouchableOpacity>
             </SafeAreaView>
         );

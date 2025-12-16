@@ -9,7 +9,7 @@ import { getAllIssues, upvoteIssue, getDashboardStats } from '../services/issueS
 import { AuthContext } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
-    const { isGuest, logout } = useContext(AuthContext); // Access Auth Context
+    const { isGuest, logout, user, profile } = useContext(AuthContext); // Access Auth Context
 
     const [issues, setIssues] = useState([]);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
@@ -41,11 +41,21 @@ export default function HomeScreen({ navigation }) {
     );
 
     const handleUpvote = async (issueId) => {
-        if (isGuest) {
-            Alert.alert("Login Required", "Guest users cannot upvote issues. Please login to contribute.", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Login", onPress: () => logout() } // Logout takes them back to AuthScreen
-            ]);
+        // Guest OR Incomplete Profile Block
+        if (isGuest || (user && profile && !profile.isProfileComplete)) {
+            Alert.alert(
+                isGuest ? "Login Required" : "Profile Incomplete",
+                isGuest
+                    ? "Guest users cannot upvote issues. Please login to contribute."
+                    : "You must complete your profile to upvote.",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: isGuest ? "Login" : "Complete Profile",
+                        onPress: () => logout() // Logout to reset flow which directs to Auth or Setup
+                    }
+                ]
+            );
             return;
         }
 
@@ -186,20 +196,16 @@ export default function HomeScreen({ navigation }) {
                                 status={item.status}
                                 image={item.imageUrl}
                                 id={item.id}
+                                rightAction={
+                                    <TouchableOpacity
+                                        style={styles.inlineUpvote}
+                                        onPress={() => handleUpvote(item.id)}
+                                    >
+                                        <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
+                                        <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
+                                    </TouchableOpacity>
+                                }
                             />
-                            {/* Hacky way to add upvote to IssueCard without modifying IssueCard props extensively if not passed down, 
-                        BUT IssueCard doesn't have an upvote button in design logic. 
-                        I will stick to the List view. 
-                        Requirement: "Display title, category, priority, upvote button (calls upvoteIssue)"
-                        I need to modify IssueCard or wrap it.
-                    */}
-                            <TouchableOpacity
-                                style={styles.floatingUpvote}
-                                onPress={() => handleUpvote(item.id)}
-                            >
-                                <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
-                                <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
-                            </TouchableOpacity>
                         </View>
                     ))
                 )}
@@ -484,10 +490,7 @@ const styles = StyleSheet.create({
     },
 
     // List Upvote Button Overlay
-    floatingUpvote: {
-        position: 'absolute',
-        right: 16,
-        top: 16,
+    inlineUpvote: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(59, 130, 246, 0.2)',
