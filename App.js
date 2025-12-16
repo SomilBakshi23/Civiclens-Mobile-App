@@ -10,6 +10,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import MapScreen from './src/screens/MapScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -76,7 +77,7 @@ export default function App() {
         />
         <Tab.Screen
           name="Profile"
-          component={View} // Placeholder
+          component={ProfileScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person" size={size} color={color} />
