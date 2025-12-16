@@ -10,7 +10,9 @@ import HomeScreen from './src/screens/HomeScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import MapScreen from './src/screens/MapScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import UserDashboardScreen from './src/screens/UserDashboardScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -73,6 +75,14 @@ export default function App() {
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name={focused ? "map" : "map-outline"} size={size} color={color} />
             ),
+          }}
+        />
+        <Tab.Screen
+          name="UserDashboard"
+          component={UserDashboardScreen}
+          options={{
+            tabBarButton: () => null, // Hidden from tab bar
+            tabBarStyle: { display: 'none' }, // Hide tab bar
           }}
         />
         <Tab.Screen
