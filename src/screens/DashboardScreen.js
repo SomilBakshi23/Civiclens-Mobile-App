@@ -37,7 +37,7 @@ export default function DashboardScreen({ navigation }) {
 
                     <View style={styles.levelCard}>
                         <View style={styles.scoreHeader}>
-                            <MaterialCommunityIcons name="star-decagram" size={14} color="#F97316" />
+                            <MaterialCommunityIcons name="star-circle" size={14} color="#F97316" />
                             <Text style={styles.scoreLabel}>CONTRIBUTOR</Text>
                         </View>
                         <Text style={styles.scoreValue}>Lvl 5</Text>
