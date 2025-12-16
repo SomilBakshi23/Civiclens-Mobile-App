@@ -1,11 +1,22 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Alert, Modal } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }) {
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleSignOut = () => {
+        setShowLogoutModal(true);
+    };
+
+    const confirmSignOut = () => {
+        setShowLogoutModal(false);
+        console.log("User Signed Out");
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -163,13 +174,48 @@ export default function ProfileScreen({ navigation }) {
                     <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.logoutButton}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
                     <MaterialCommunityIcons name="logout" size={20} color="white" style={{ marginRight: 8 }} />
                     <Text style={styles.logoutText}>Sign Out</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
+
+            <Modal
+                transparent={true}
+                visible={showLogoutModal}
+                animationType="fade"
+                onRequestClose={() => setShowLogoutModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalIconContainer}>
+                            <MaterialCommunityIcons name="logout" size={32} color={colors.primary} />
+                        </View>
+                        <Text style={styles.modalTitle}>Sign Out?</Text>
+                        <Text style={styles.modalMessage}>Are you sure you want to sign out? You will need to login again to access your profile.</Text>
+
+                        <View style={styles.modalButtons}>
+                            {/* Yes Button - Secondary/Ghost style */}
+                            <TouchableOpacity
+                                style={styles.modalButtonYes}
+                                onPress={confirmSignOut}
+                            >
+                                <Text style={styles.modalButtonYesText}>Yes, Sign Out</Text>
+                            </TouchableOpacity>
+
+                            {/* No Button - Colored/Primary as requested */}
+                            <TouchableOpacity
+                                style={styles.modalButtonNo}
+                                onPress={() => setShowLogoutModal(false)}
+                            >
+                                <Text style={styles.modalButtonNoText}>No, Stay</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -462,5 +508,77 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: colors.surface,
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxWidth: 340,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    modalIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: colors.surfaceLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    modalTitle: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    modalMessage: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+    },
+    modalButtonYes: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+    },
+    modalButtonYesText: {
+        color: colors.textSecondary, // Muted for destructive/less preferred action if we want "No" to pop
+        fontWeight: '600',
+        fontSize: 15,
+    },
+    modalButtonNo: {
+        flex: 1,
+        backgroundColor: colors.primary, // Colored box for No
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    modalButtonNoText: {
+        color: 'white',
+        fontWeight: '700',
+        fontSize: 15,
     },
 });
