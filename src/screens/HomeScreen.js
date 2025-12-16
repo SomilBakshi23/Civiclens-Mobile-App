@@ -21,7 +21,7 @@ export default function HomeScreen({ navigation }) {
                     </View>
                     <Text style={styles.logoText}>CivicLens</Text>
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Ionicons name="notifications" size={24} color="white" />
                     <View style={styles.badge} />
                 </TouchableOpacity>
