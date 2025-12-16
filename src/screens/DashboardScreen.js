@@ -5,14 +5,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { FeedCard } from '../components/IssueCard';
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Ionicons name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Community Pulse</Text>
