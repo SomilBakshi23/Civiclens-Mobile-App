@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -21,94 +21,95 @@ export default function AuthScreen() {
 
         setIsSubmitting(true);
         let result;
-        if (isLogin) {
-            result = await login(email, password);
-        } else {
-            result = await register(email, password);
+        try {
+            if (isLogin) {
+                result = await login(email, password);
+            } else {
+                result = await register(email, password);
+            }
+        } catch (error) {
+            // Fallback catch, though AuthContext should handle it
+            result = { success: false, error: error.message };
         }
+
         setIsSubmitting(false);
 
-        if (!result.success) {
+        if (result && !result.success) {
             Alert.alert("Authentication Error", result.error);
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                {/* Logo Section */}
-                <View style={styles.logoSection}>
-                    <View style={styles.logoIcon}>
-                        <Ionicons name="search" size={32} color={colors.primary} />
-                    </View>
-                    <Text style={styles.appName}>CivicLens</Text>
-                    <Text style={styles.tagline}>Empowering Communities.</Text>
-                </View>
-
-                {/* Form */}
-                <View style={styles.formCard}>
-                    <Text style={styles.formTitle}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
-
-                    <View style={styles.inputGroup}>
-                        <Ionicons name="mail" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email Address"
-                            placeholderTextColor={colors.textTertiary}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                        />
+                    <View style={styles.header}>
+                        <View style={styles.logoCircle}>
+                            <Ionicons name="search" size={40} color={colors.primary} />
+                        </View>
+                        <Text style={styles.title}>CivicLens</Text>
+                        <Text style={styles.subtitle}>Empowering Citizens, Fixing Cities</Text>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Ionicons name="lock-closed" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Password"
-                            placeholderTextColor={colors.textTertiary}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
+                    <View style={styles.form}>
+                        <Text style={styles.formTitle}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email Address"
+                                placeholderTextColor={colors.textSecondary}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Password"
+                                placeholderTextColor={colors.textSecondary}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                            />
+                        </View>
+
+                        <TouchableOpacity style={styles.authButton} onPress={handleSubmit} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.authButtonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.switchButton} onPress={() => setIsLogin(!isLogin)}>
+                            <Text style={styles.switchText}>
+                                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity
-                        style={styles.primaryButton}
-                        onPress={handleSubmit}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.buttonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
-                        )}
+                    <View style={styles.divider}>
+                        <View style={styles.line} />
+                        <Text style={styles.orText}>OR</Text>
+                        <View style={styles.line} />
+                    </View>
+
+                    <TouchableOpacity style={styles.guestButton} onPress={continueAsGuest}>
+                        <Text style={styles.guestText}>Continue as Guest</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchBtn}>
-                        <Text style={styles.switchText}>
-                            {isLogin ? "Don't have an account? " : "Already have an account? "}
-                            <Text style={styles.linkText}>{isLogin ? 'Sign Up' : 'Log In'}</Text>
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>OR</Text>
-                    <View style={styles.dividerLine} />
-                </View>
-
-                {/* Guest Button */}
-                <TouchableOpacity style={styles.guestButton} onPress={continueAsGuest}>
-                    <Text style={styles.guestText}>Continue as Guest</Text>
-                    <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
-                </TouchableOpacity>
-
-            </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -116,64 +117,58 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#050A14', // Using direct color code or import if prefer
+        backgroundColor: colors.background,
     },
-    content: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
         padding: 24,
     },
-    logoSection: {
+    header: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 48,
     },
-    logoIcon: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    logoCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: 'rgba(59, 130, 246, 0.3)',
+        borderColor: colors.primary,
     },
-    appName: {
+    title: {
         fontSize: 32,
-        fontWeight: '800',
+        fontWeight: 'bold',
         color: 'white',
         letterSpacing: 1,
     },
-    tagline: {
-        color: '#94A3B8',
-        fontSize: 16,
+    subtitle: {
+        fontSize: 14,
+        color: colors.textSecondary,
         marginTop: 8,
     },
-    formCard: {
-        backgroundColor: '#0F1623',
-        padding: 24,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: '#1E293B',
-        marginBottom: 24,
+    form: {
+        width: '100%',
     },
     formTitle: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 24,
+        fontWeight: 'bold',
         color: 'white',
         marginBottom: 24,
-        textAlign: 'center',
     },
-    inputGroup: {
+    inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E293B',
+        backgroundColor: colors.surface,
         borderRadius: 12,
         marginBottom: 16,
-        paddingHorizontal: 16,
-        height: 56,
         borderWidth: 1,
-        borderColor: '#334155',
+        borderColor: colors.border,
+        paddingHorizontal: 16,
+        height: 56, // Fixed height for consistency
     },
     inputIcon: {
         marginRight: 12,
@@ -182,60 +177,54 @@ const styles = StyleSheet.create({
         flex: 1,
         color: 'white',
         fontSize: 16,
+        height: '100%',
     },
-    primaryButton: {
+    authButton: {
         backgroundColor: colors.primary,
-        height: 56,
+        paddingVertical: 16,
         borderRadius: 12,
-        justifyContent: 'center',
         alignItems: 'center',
         marginTop: 8,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
     },
-    buttonText: {
+    authButtonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
     },
-    switchBtn: {
-        marginTop: 16,
+    switchButton: {
         alignItems: 'center',
+        marginTop: 16,
+        padding: 8,
     },
     switchText: {
-        color: '#94A3B8',
-        fontSize: 14,
-    },
-    linkText: {
         color: colors.primary,
-        fontWeight: 'bold',
+        fontSize: 14,
     },
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
+        marginVertical: 32,
     },
-    dividerLine: {
+    line: {
         flex: 1,
         height: 1,
-        backgroundColor: '#1E293B',
+        backgroundColor: colors.border,
     },
-    dividerText: {
-        color: '#64748B',
+    orText: {
+        color: colors.textSecondary,
         marginHorizontal: 16,
         fontSize: 12,
-        fontWeight: '700',
     },
     guestButton: {
-        flexDirection: 'row',
-        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        paddingVertical: 16,
+        borderRadius: 12,
         alignItems: 'center',
-        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     guestText: {
-        color: '#94A3B8',
+        color: 'white',
         fontSize: 16,
         fontWeight: '600',
     },
