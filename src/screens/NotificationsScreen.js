@@ -8,9 +8,11 @@ import { db } from '../services/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { AuthContext } from '../context/AuthContext';
 import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function NotificationsScreen({ navigation }) {
     const { user } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [checking, setChecking] = useState(true);
     const [notifications, setNotifications] = useState([]);
 
@@ -51,15 +53,15 @@ export default function NotificationsScreen({ navigation }) {
     }, [user]);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Notifications & Updates</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Notifications & Updates</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -67,20 +69,20 @@ export default function NotificationsScreen({ navigation }) {
 
                 {/* System Update Section */}
                 <View style={[styles.section, { marginBottom: 32 }]}>
-                    <Text style={styles.sectionHeader}>System Status</Text>
+                    <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>System Status</Text>
                     {checking ? (
-                        <View style={styles.updateCard}>
-                            <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 12 }} />
-                            <Text style={styles.updateText}>Checking for updates...</Text>
+                        <View style={[styles.updateCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                            <ActivityIndicator size="small" color={theme.primary} style={{ marginRight: 12 }} />
+                            <Text style={[styles.updateText, { color: theme.textSecondary }]}>Checking for updates...</Text>
                         </View>
                     ) : (
-                        <View style={styles.updateCard}>
+                        <View style={[styles.updateCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                             <View style={styles.checkIcon}>
                                 <Ionicons name="checkmark" size={16} color="white" />
                             </View>
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.updateTitle}>Up to Date</Text>
-                                <Text style={styles.updateText}>The application is already in the updated version.</Text>
+                                <Text style={[styles.updateTitle, { color: theme.textPrimary }]}>Up to Date</Text>
+                                <Text style={[styles.updateText, { color: theme.textSecondary }]}>The application is already in the updated version.</Text>
                             </View>
                         </View>
                     )}
@@ -88,26 +90,26 @@ export default function NotificationsScreen({ navigation }) {
 
                 {/* Report Tracking Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>Track Reports</Text>
+                    <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Track Reports</Text>
 
                     {notifications.length === 0 ? (
-                        <Text style={{ color: colors.textSecondary, marginTop: 20 }}>No new notifications.</Text>
+                        <Text style={{ color: theme.textSecondary, marginTop: 20 }}>No new notifications.</Text>
                     ) : (
                         notifications.map((item) => (
-                            <View key={item.id} style={styles.reportCard}>
+                            <View key={item.id} style={[styles.reportCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                                 <View style={styles.reportHeader}>
-                                    <Text style={styles.reportTitle}>{item.title}</Text>
-                                    <View style={[styles.statusBadge, { backgroundColor: '#3B82F620' }]}>
-                                        <Text style={[styles.statusText, { color: '#3B82F6' }]}>{item.type?.toUpperCase() || 'INFO'}</Text>
+                                    <Text style={[styles.reportTitle, { color: theme.textPrimary }]}>{item.title}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: `${theme.primary}20` }]}>
+                                        <Text style={[styles.statusText, { color: theme.primary }]}>{item.type?.toUpperCase() || 'INFO'}</Text>
                                     </View>
                                 </View>
 
-                                <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>
+                                <Text style={{ color: theme.textSecondary, marginBottom: 12, lineHeight: 20 }}>
                                     {item.message}
                                 </Text>
 
-                                <View style={styles.divider} />
-                                <Text style={{ fontSize: 10, color: '#64748B' }}>{item.timeAgo}</Text>
+                                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                                <Text style={{ fontSize: 10, color: theme.textSecondary }}>{item.timeAgo}</Text>
                             </View>
                         ))
                     )}

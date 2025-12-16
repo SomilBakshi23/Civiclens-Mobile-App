@@ -6,10 +6,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { FeedCard } from '../components/IssueCard';
 import { getDashboardStats } from '../services/issueService';
+import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 
 export default function DashboardScreen({ navigation }) {
     const { profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
 
     // Simple Level Calculation: 1 Level per 200 points
@@ -31,17 +33,17 @@ export default function DashboardScreen({ navigation }) {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
-                    <Ionicons name="menu" size={24} color="white" />
+                    <Ionicons name="menu" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Community Pulse</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Community Pulse</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-                    <Ionicons name="notifications" size={24} color="white" />
+                    <Ionicons name="notifications" size={24} color={theme.textPrimary} />
                     <View style={styles.badge} />
                 </TouchableOpacity>
             </View>
@@ -50,22 +52,22 @@ export default function DashboardScreen({ navigation }) {
 
                 {/* User Stats Row */}
                 <View style={styles.statsRow}>
-                    <View style={styles.scoreCard}>
+                    <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.scoreHeader}>
                             <Ionicons name="flash" size={14} color="#3B82F6" />
                             <Text style={styles.scoreLabel}>CIVIC SCORE</Text>
                         </View>
-                        <Text style={styles.scoreValue}>{currentScore.toLocaleString()}</Text>
+                        <Text style={[styles.scoreValue, { color: theme.textPrimary }]}>{currentScore.toLocaleString()}</Text>
                         <Text style={styles.scoreSub}>Good Standing</Text>
                     </View>
 
-                    <View style={styles.levelCard}>
+                    <View style={[styles.levelCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.scoreHeader}>
                             <MaterialCommunityIcons name="star-circle" size={14} color="#F97316" />
                             <Text style={styles.scoreLabel}>CONTRIBUTOR</Text>
                         </View>
-                        <Text style={styles.scoreValue}>Lvl {currentLevel}</Text>
-                        <View style={styles.levelBarBg}>
+                        <Text style={[styles.scoreValue, { color: theme.textPrimary }]}>Lvl {currentLevel}</Text>
+                        <View style={[styles.levelBarBg, { backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0' }]}>
                             <View style={[styles.levelBarFill, { width: `${progress * 100}%` }]} />
                         </View>
                     </View>
@@ -73,15 +75,15 @@ export default function DashboardScreen({ navigation }) {
 
                 {/* Dashboard Stats from Firestore */}
                 <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-                    <View style={styles.miniStat}>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.miniLabel}>Total Issues</Text>
-                        <Text style={styles.miniValue}>{stats.totalIssues}</Text>
+                        <Text style={[styles.miniValue, { color: theme.textPrimary }]}>{stats.totalIssues}</Text>
                     </View>
-                    <View style={styles.miniStat}>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.miniLabel}>Resolution Rate</Text>
                         <Text style={[styles.miniValue, { color: '#4ADE80' }]}>{stats.resolvedRate}</Text>
                     </View>
-                    <View style={styles.miniStat}>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.miniLabel}>Avg Time</Text>
                         <Text style={[styles.miniValue, { color: '#F59E0B' }]}>{stats.resTime}</Text>
                     </View>
@@ -89,14 +91,14 @@ export default function DashboardScreen({ navigation }) {
 
                 {/* Filters */}
                 <View style={styles.filterRow}>
-                    <TouchableOpacity style={styles.activeFilter}>
-                        <Text style={styles.activeFilterText}>All Issues</Text>
+                    <TouchableOpacity style={[styles.activeFilter, { backgroundColor: theme.textPrimary }]}>
+                        <Text style={[styles.activeFilterText, { color: theme.background }]}>All Issues</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filter}>
+                    <TouchableOpacity style={[styles.filter, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Ionicons name="flame" size={14} color="#F97316" style={{ marginRight: 4 }} />
                         <Text style={styles.filterText}>Trending</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filter}>
+                    <TouchableOpacity style={[styles.filter, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Ionicons name="location-sharp" size={14} color="#64748B" style={{ marginRight: 4 }} />
                         <Text style={styles.filterText}>Near Me</Text>
                     </TouchableOpacity>

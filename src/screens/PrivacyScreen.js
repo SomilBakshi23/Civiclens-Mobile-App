@@ -2,35 +2,38 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, SafeAreaView, Linking } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function PrivacyScreen({ navigation }) {
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [publicProfile, setPublicProfile] = useState(false);
     const [locationSharing, setLocationSharing] = useState(true);
     const [aiContribution, setAiContribution] = useState(true);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
+                    <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Privacy & Data</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Privacy & Data</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
                 {/* Data Protection Status Card */}
-                <View style={styles.statusCard}>
+                <View style={[styles.statusCard, { backgroundColor: isDarkMode ? '#111827' : '#F1F5F9', borderColor: theme.border }]}>
                     <View style={styles.statusHeader}>
                         <View style={styles.shieldIconContainer}>
                             <MaterialCommunityIcons name="shield-check" size={24} color="#60A5FA" />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.statusTitle}>Data Protection Status</Text>
+                            <Text style={[styles.statusTitle, { color: theme.textPrimary }]}>Data Protection Status</Text>
                         </View>
                     </View>
-                    <Text style={styles.statusDesc}>
+                    <Text style={[styles.statusDesc, { color: theme.textSecondary }]}>
                         Your civic data is encrypted and protected. We value transparency in how your contributions are used for city improvements.
                     </Text>
                     <View style={styles.compliantBadge}>
@@ -40,55 +43,55 @@ export default function PrivacyScreen({ navigation }) {
                 </View>
 
                 {/* Sharing Preferences */}
-                <Text style={styles.sectionHeader}>SHARING PREFERENCES</Text>
+                <Text style={[styles.sectionHeader, { color: theme.textTertiary }]}>SHARING PREFERENCES</Text>
 
-                <View style={styles.preferenceGroup}>
+                <View style={[styles.preferenceGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     {/* Public Profile */}
                     <View style={styles.preferenceItem}>
                         <View style={{ flex: 1, paddingRight: 16 }}>
-                            <Text style={styles.prefTitle}>Public Profile</Text>
-                            <Text style={styles.prefDesc}>Allow neighbors to see your civic achievements and rank.</Text>
+                            <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>Public Profile</Text>
+                            <Text style={[styles.prefDesc, { color: theme.textSecondary }]}>Allow neighbors to see your civic achievements and rank.</Text>
                         </View>
                         <Switch
-                            trackColor={{ false: "#334155", true: colors.primary }}
+                            trackColor={{ false: isDarkMode ? "#334155" : "#cbd5e1", true: theme.primary }}
                             thumbColor={"white"}
-                            ios_backgroundColor="#334155"
+                            ios_backgroundColor={isDarkMode ? "#334155" : "#cbd5e1"}
                             onValueChange={setPublicProfile}
                             value={publicProfile}
                             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                         />
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
                     {/* Location Sharing */}
                     <View style={styles.preferenceItem}>
                         <View style={{ flex: 1, paddingRight: 16 }}>
-                            <Text style={styles.prefTitle}>Location Sharing</Text>
-                            <Text style={styles.prefDesc}>Required to verify pothole reports and local issues.</Text>
+                            <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>Location Sharing</Text>
+                            <Text style={[styles.prefDesc, { color: theme.textSecondary }]}>Required to verify pothole reports and local issues.</Text>
                         </View>
                         <Switch
-                            trackColor={{ false: "#334155", true: colors.primary }}
+                            trackColor={{ false: isDarkMode ? "#334155" : "#cbd5e1", true: theme.primary }}
                             thumbColor={"white"}
-                            ios_backgroundColor="#334155"
+                            ios_backgroundColor={isDarkMode ? "#334155" : "#cbd5e1"}
                             onValueChange={setLocationSharing}
                             value={locationSharing}
                             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                         />
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
                     {/* AI Contribution */}
                     <View style={styles.preferenceItem}>
                         <View style={{ flex: 1, paddingRight: 16 }}>
-                            <Text style={styles.prefTitle}>AI Analysis Contribution</Text>
-                            <Text style={styles.prefDesc}>Anonymize my reports to help train the Civic AI model.</Text>
+                            <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>AI Analysis Contribution</Text>
+                            <Text style={[styles.prefDesc, { color: theme.textSecondary }]}>Anonymize my reports to help train the Civic AI model.</Text>
                         </View>
                         <Switch
-                            trackColor={{ false: "#334155", true: colors.primary }}
+                            trackColor={{ false: isDarkMode ? "#334155" : "#cbd5e1", true: theme.primary }}
                             thumbColor={"white"}
-                            ios_backgroundColor="#334155"
+                            ios_backgroundColor={isDarkMode ? "#334155" : "#cbd5e1"}
                             onValueChange={setAiContribution}
                             value={aiContribution}
                             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
@@ -97,32 +100,32 @@ export default function PrivacyScreen({ navigation }) {
                 </View>
 
                 {/* Your Data Actions */}
-                <Text style={styles.sectionHeader}>YOUR DATA</Text>
+                <Text style={[styles.sectionHeader, { color: theme.textTertiary }]}>YOUR DATA</Text>
 
                 <View style={styles.dataActionsRow}>
-                    <TouchableOpacity style={styles.dataActionButton}>
-                        <MaterialCommunityIcons name="download" size={24} color="white" style={{ marginBottom: 8 }} />
-                        <Text style={styles.dataActionTitle}>Export Data</Text>
-                        <Text style={styles.dataActionSubtitle}>Download CSV</Text>
+                    <TouchableOpacity style={[styles.dataActionButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <MaterialCommunityIcons name="download" size={24} color={theme.textPrimary} style={{ marginBottom: 8 }} />
+                        <Text style={[styles.dataActionTitle, { color: theme.textPrimary }]}>Export Data</Text>
+                        <Text style={[styles.dataActionSubtitle, { color: theme.textSecondary }]}>Download CSV</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.dataActionButton}>
-                        <MaterialCommunityIcons name="delete-forever" size={24} color="white" style={{ marginBottom: 8 }} />
-                        <Text style={styles.dataActionTitle}>Delete Acct</Text>
-                        <Text style={styles.dataActionSubtitle}>Permanent</Text>
+                    <TouchableOpacity style={[styles.dataActionButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <MaterialCommunityIcons name="delete-forever" size={24} color="#EF4444" style={{ marginBottom: 8 }} />
+                        <Text style={[styles.dataActionTitle, { color: theme.textPrimary }]}>Delete Acct</Text>
+                        <Text style={[styles.dataActionSubtitle, { color: theme.textSecondary }]}>Permanent</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Legal Links */}
-                <View style={styles.legalContainer}>
+                <View style={[styles.legalContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <TouchableOpacity style={styles.legalLink}>
-                        <Text style={styles.legalText}>Privacy Policy</Text>
-                        <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textSecondary} />
+                        <Text style={[styles.legalText, { color: theme.textSecondary }]}>Privacy Policy</Text>
+                        <MaterialCommunityIcons name="open-in-new" size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
                     <TouchableOpacity style={styles.legalLink}>
-                        <Text style={styles.legalText}>Terms of Service</Text>
-                        <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textSecondary} />
+                        <Text style={[styles.legalText, { color: theme.textSecondary }]}>Terms of Service</Text>
+                        <MaterialCommunityIcons name="open-in-new" size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
                 </View>
 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { upvoteIssue, deleteIssue } from '../services/issueService';
 import MapView, { Marker } from 'react-native-maps';
 
@@ -12,6 +13,7 @@ const { width } = Dimensions.get('window');
 export default function IssueDetailsScreen({ route, navigation }) {
     const { issue } = route.params;
     const { user, isGuest } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
     const [likes, setLikes] = useState(issue.upvotes || 0);
 
     const handleUpvote = async () => {
@@ -34,13 +36,13 @@ export default function IssueDetailsScreen({ route, navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Issue Details</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Issue Details</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -54,7 +56,7 @@ export default function IssueDetailsScreen({ route, navigation }) {
                 <View style={styles.content}>
                     {/* Title & Status */}
                     <View style={styles.titleRow}>
-                        <Text style={styles.title}>{issue.title}</Text>
+                        <Text style={[styles.title, { color: theme.textPrimary }]}>{issue.title}</Text>
                         <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(issue.status)}20`, borderColor: getStatusColor(issue.status) }]}>
                             <Text style={[styles.statusText, { color: getStatusColor(issue.status) }]}>
                                 {issue.status?.toUpperCase() || "OPEN"}
@@ -63,33 +65,33 @@ export default function IssueDetailsScreen({ route, navigation }) {
                     </View>
 
                     {/* Metadata Row */}
-                    <View style={styles.metaRow}>
+                    <View style={[styles.metaRow, { borderBottomColor: theme.border }]}>
                         <View style={styles.metaItem}>
-                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textSecondary} />
-                            <Text style={styles.metaText}>{new Date().toLocaleDateString()}</Text>
+                            <MaterialCommunityIcons name="clock-outline" size={16} color={theme.textSecondary} />
+                            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{new Date().toLocaleDateString()}</Text>
                         </View>
                         <View style={styles.metaItem}>
-                            <MaterialCommunityIcons name="tag-outline" size={16} color={colors.textSecondary} />
-                            <Text style={styles.metaText}>{issue.category || 'General'}</Text>
+                            <MaterialCommunityIcons name="tag-outline" size={16} color={theme.textSecondary} />
+                            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{issue.category || 'General'}</Text>
                         </View>
                         <View style={styles.metaItem}>
-                            <MaterialCommunityIcons name="alert-circle-outline" size={16} color={colors.textSecondary} />
-                            <Text style={styles.metaText}>{issue.priority?.toUpperCase() || 'NORMAL'}</Text>
+                            <MaterialCommunityIcons name="alert-circle-outline" size={16} color={theme.textSecondary} />
+                            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{issue.priority?.toUpperCase() || 'NORMAL'}</Text>
                         </View>
                     </View>
 
                     {/* Description */}
-                    <Text style={styles.sectionHeader}>Description</Text>
-                    <Text style={styles.description}>
+                    <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>Description</Text>
+                    <Text style={[styles.description, { color: theme.textSecondary }]}>
                         {issue.description}
                     </Text>
 
                     {/* Location */}
-                    <Text style={styles.sectionHeader}>Location</Text>
-                    <View style={styles.locationContainer}>
+                    <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>Location</Text>
+                    <View style={[styles.locationContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.locationTextRow}>
-                            <Ionicons name="location" size={18} color={colors.primary} />
-                            <Text style={styles.addressText} numberOfLines={2}>
+                            <Ionicons name="location" size={18} color={theme.primary} />
+                            <Text style={[styles.addressText, { color: theme.textPrimary }]} numberOfLines={2}>
                                 {issue.location || "Location Coordinates"}
                             </Text>
                         </View>
