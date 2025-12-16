@@ -1,18 +1,38 @@
-import React, { useState } from 'react';
+
+import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { createIssue } from '../services/issueService';
 import { calculatePriority } from '../utils/priorityEngine';
+import { AuthContext } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
+    const { isGuest, logout } = useContext(AuthContext); // Access Auth Context
+
     const [description, setDescription] = useState('');
     const [title, setTitle] = useState(''); // Added title state
     const [category, setCategory] = useState({ name: 'Infrastructure', icon: 'account-hard-hat' }); // Default category
     const [loading, setLoading] = useState(false);
+
+    // Guest Protection Logic
+    if (isGuest) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+                <MaterialCommunityIcons name="account-lock" size={64} color={colors.textSecondary} style={{ marginBottom: 20 }} />
+                <Text style={styles.headerTitle}>Login Required</Text>
+                <Text style={[styles.heroSubtitle, { marginTop: 10, marginBottom: 30 }]}>
+                    You must be logged in to report issues. Guest access is read-only.
+                </Text>
+                <TouchableOpacity style={styles.primaryButton} onPress={() => logout()}>
+                    <Text style={styles.buttonText}>Go to Login</Text>
+                </TouchableOpacity>
+            </SafeAreaView>
+        );
+    }
 
     const handleSubmit = async () => {
         if (!description.trim() || !title.trim()) {
