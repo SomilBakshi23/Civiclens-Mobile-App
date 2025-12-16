@@ -23,94 +23,28 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import CivicPreferencesScreen from './src/screens/CivicPreferencesScreen';
 
+import CustomTabBar from './src/components/CustomTabBar';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function BottomTabNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#050A14',
-          borderTopColor: '#1E293B',
-          height: 75,
-          paddingBottom: 20,
-          paddingTop: 12,
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
-        },
-      })}
+      }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Pulse"
-        component={DashboardScreen}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons
-              name={focused ? "clipboard-text" : "clipboard-text-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Report"
-        component={ReportScreen}
-        options={{
-          tabBarButton: () => null, // Hidden from tab bar, accessed via FAB/Hero
-          tabBarStyle: { display: 'none' }, // Hide tab bar on report screen
-        }}
-      />
-      <Tab.Screen
-        name="Map"
-        component={MapScreen}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "map" : "map-outline"} size={size} color={color} />
-          ),
-        }}
-      />
-      {/* Hidden Screens */}
-      <Tab.Screen
-        name="UserDashboard"
-        component={UserDashboardScreen}
-        options={{
-          tabBarButton: () => null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          tabBarButton: () => null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Community" component={DashboardScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+
+      {/* Hidden / Functional Screens */}
+      <Tab.Screen name="Report" component={ReportScreen} />
+      <Tab.Screen name="UserDashboard" component={UserDashboardScreen} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} />
     </Tab.Navigator>
   );
 }
