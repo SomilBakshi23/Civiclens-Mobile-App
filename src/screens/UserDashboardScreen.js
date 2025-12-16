@@ -20,6 +20,17 @@ export default function UserDashboardScreen({ navigation }) {
                 if (!user) return;
 
                 try {
+                    // 1. Fetch Latest Profile (for Civic Score)
+                    const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
+                    if (!userDoc.empty) {
+                        // We could update context, but for now just local state or rely on stats re-render
+                        // Actually, we should force a profile refresh if we want 'profile.civicScore' to update
+                        // But since 'profile' comes from AuthContext, let's fetch it manually here for display
+                        const freshProfile = userDoc.docs[0].data();
+                        setCurrentProfile(freshProfile);
+                    }
+
+                    // 2. Fetch Issues
                     // Strict Isolation: Only show current user's reports
                     // Also exclude deleted ones
                     const q = query(
@@ -55,11 +66,14 @@ export default function UserDashboardScreen({ navigation }) {
         }, [user, isGuest])
     );
 
+    // Use local profile if available, else context profile
+    const [currentProfile, setCurrentProfile] = useState(profile);
+
     const userStats = {
-        starRating: profile?.civicScore ? (profile.civicScore / 20).toFixed(1) : "5.0",
+        starRating: currentProfile?.civicScore ? (currentProfile.civicScore / 20).toFixed(1) : "5.0",
         totalReports: stats.total, // REAL DATA
         verifiedReports: stats.verified, // REAL DATA
-        ranking: profile?.rank || 'New Citizen'
+        ranking: currentProfile?.rank || 'New Citizen'
     };
 
     // Category data with report counts

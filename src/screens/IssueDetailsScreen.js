@@ -135,9 +135,9 @@ export default function IssueDetailsScreen({ route, navigation }) {
                                         text: "Delete",
                                         style: "destructive",
                                         onPress: async () => {
-                                            const success = await deleteIssue(issue.id);
+                                            const success = await deleteIssue(issue.id, user.uid);
                                             if (success) {
-                                                Alert.alert("Deleted", "Your report has been removed.");
+                                                Alert.alert("Deleted", "Your report has been removed and Civic Score updated.");
                                                 navigation.goBack();
                                             } else {
                                                 Alert.alert("Error", "Could not delete report.");

@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, addDoc, collection } from "firebase/firestore";
 
 const USERS_COLLECTION = 'users';
 
@@ -81,5 +81,46 @@ export const updateUserProfile = async (uid, data) => {
     } catch (error) {
         console.error("Error updating user profile:", error);
         return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Updates the user's Civic Score
+ * @param {string} uid - User ID
+ * @param {number} change - Amount to add (positive) or subtract (negative)
+ */
+export const updateCivicScore = async (uid, change) => {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, uid);
+        await updateDoc(userRef, {
+            civicScore: increment(change)
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating civic score:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Creates a notification for the user
+ * @param {string} uid 
+ * @param {string} title 
+ * @param {string} message 
+ */
+export const createNotification = async (uid, title, message) => {
+    try {
+        await addDoc(collection(db, 'notifications'), {
+            uid: uid,
+            title: title,
+            message: message,
+            read: false,
+            createdAt: serverTimestamp(),
+            type: 'reward'
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error creating notification:", error);
+        return { success: false };
     }
 };

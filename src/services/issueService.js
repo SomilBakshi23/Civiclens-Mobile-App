@@ -1,5 +1,6 @@
 // src/services/issueService.js
 import { db } from './firebase';
+import { updateCivicScore, createNotification } from './userService';
 import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc, getCountFromServer, where } from "firebase/firestore";
 import { calculatePriority } from '../utils/priorityEngine';
 
@@ -76,6 +77,13 @@ export const createIssue = async (issueData) => {
             createdAt: serverTimestamp()
         });
         console.log("Document written with ID: ", docRef.id);
+
+        // REWARD: +10 Civic Score
+        if (issueData.reportedBy) {
+            updateCivicScore(issueData.reportedBy, 10);
+            createNotification(issueData.reportedBy, "Civic Score Update", "You earned +10 Civic Score for reporting an issue!");
+        }
+
         // Update the local ID with real ID (optional for demo)
         return { success: true, id: docRef.id };
     } catch (e) {
@@ -183,9 +191,17 @@ export const updateIssueStatus = async (issueId, status) => {
 };
 
 
-export const deleteIssue = async (issueId) => {
+export const deleteIssue = async (issueId, userId) => {
     try {
         const issueRef = doc(db, ISSUES_COLLECTION, issueId);
+
+        // Fetch to confirm owner or just trust caller (for demo trusting)
+        // PENALTY: -10 Civic Score
+        if (userId) {
+            updateCivicScore(userId, -10);
+            createNotification(userId, "Civic Score Update", "You lost -10 Civic Score for deleting a report.");
+        }
+
         await updateDoc(issueRef, {
             status: 'deleted'
         });

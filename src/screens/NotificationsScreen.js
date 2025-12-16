@@ -4,49 +4,51 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
+import { db } from '../services/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { AuthContext } from '../context/AuthContext';
+import { useContext } from 'react';
+
 export default function NotificationsScreen({ navigation }) {
+    const { user } = useContext(AuthContext);
     const [checking, setChecking] = useState(true);
+    const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        // Simulate checking for updates
-        const timer = setTimeout(() => {
-            setChecking(false);
-        }, 1500);
-        return () => clearTimeout(timer);
-    }, []);
+        const fetchNotifications = async () => {
+            if (!user) {
+                setChecking(false);
+                return;
+            }
 
-    const reports = [
-        {
-            id: 1,
-            title: 'Pothole on 5th Ave',
-            status: 'In Progress',
-            eta: '2 Days',
-            usefulCount: 24,
-            reshareCount: 5,
-            progress: 0.6,
-            color: '#F59E0B'
-        },
-        {
-            id: 2,
-            title: 'Street Light Outage',
-            status: 'Acknowledged',
-            eta: '4 Days',
-            usefulCount: 12,
-            reshareCount: 2,
-            progress: 0.3,
-            color: '#3B82F6'
-        },
-        {
-            id: 3,
-            title: 'Garbage Dump - Sec 4',
-            status: 'Pending Review',
-            eta: 'Calculating...',
-            usefulCount: 8,
-            reshareCount: 0,
-            progress: 0.1,
-            color: '#64748B'
-        }
-    ];
+            try {
+                // Fetch Reward/System Notifications
+                // NOTE: Removed orderBy to avoid Firestore Index requirement for this Demo
+                const q = query(
+                    collection(db, "notifications"),
+                    where("uid", "==", user.uid),
+                    limit(50)
+                );
+                const snapshot = await getDocs(q);
+                const fetched = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    // Format timestamp if needed
+                    timeAgo: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate().toLocaleDateString() : 'Just now',
+                    rawTime: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()
+                }))
+                    .sort((a, b) => b.rawTime - a.rawTime); // Client-side sort
+
+                setNotifications(fetched);
+            } catch (e) {
+                console.error("Error fetching notifications", e);
+            } finally {
+                setChecking(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [user]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -88,45 +90,27 @@ export default function NotificationsScreen({ navigation }) {
                 <View style={styles.section}>
                     <Text style={styles.sectionHeader}>Track Reports</Text>
 
-                    {reports.map((report) => (
-                        <View key={report.id} style={styles.reportCard}>
-                            <View style={styles.reportHeader}>
-                                <Text style={styles.reportTitle}>{report.title}</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: `${report.color}20` }]}>
-                                    <View style={[styles.dot, { backgroundColor: report.color }]} />
-                                    <Text style={[styles.statusText, { color: report.color }]}>{report.status}</Text>
-                                </View>
-                            </View>
-
-                            {/* Progress Bar */}
-                            <View style={styles.progressBarBg}>
-                                <View style={[styles.progressBarFill, { width: `${report.progress * 100}%`, backgroundColor: report.color }]} />
-                            </View>
-
-                            <View style={styles.metaRow}>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                                    <Text style={styles.metaText}>ETA: <Text style={{ color: 'white' }}>{report.eta}</Text></Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.divider} />
-
-                            {/* Social Stats */}
-                            <View style={styles.statsRow}>
-                                <View style={[styles.statBadge, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                                    <Ionicons name="thumbs-up" size={14} color="#60A5FA" />
-                                    <Text style={[styles.statText, { color: '#60A5FA' }]}>{report.usefulCount} Found Useful</Text>
+                    {notifications.length === 0 ? (
+                        <Text style={{ color: colors.textSecondary, marginTop: 20 }}>No new notifications.</Text>
+                    ) : (
+                        notifications.map((item) => (
+                            <View key={item.id} style={styles.reportCard}>
+                                <View style={styles.reportHeader}>
+                                    <Text style={styles.reportTitle}>{item.title}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: '#3B82F620' }]}>
+                                        <Text style={[styles.statusText, { color: '#3B82F6' }]}>{item.type?.toUpperCase() || 'INFO'}</Text>
+                                    </View>
                                 </View>
 
-                                <View style={[styles.statBadge, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                                    <Ionicons name="share-social" size={14} color="#34D399" />
-                                    <Text style={[styles.statText, { color: '#34D399' }]}>{report.reshareCount} Reshares</Text>
-                                </View>
-                            </View>
+                                <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>
+                                    {item.message}
+                                </Text>
 
-                        </View>
-                    ))}
+                                <View style={styles.divider} />
+                                <Text style={{ fontSize: 10, color: '#64748B' }}>{item.timeAgo}</Text>
+                            </View>
+                        ))
+                    )}
 
                 </View>
 

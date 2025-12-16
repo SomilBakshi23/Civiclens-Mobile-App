@@ -208,7 +208,22 @@ export default function MapScreen({ navigation }) {
                             </Text>
                         </View>
                     </View>
+                    <TouchableOpacity
+                        style={styles.sheetActionBtn}
+                        onPress={() => navigation.navigate('Report', { location })}
+                    >
+                        <Ionicons name="add" size={24} color="white" />
+                    </TouchableOpacity>
                 </View>
+
+                {/* Quick Action Button for Empty Space */}
+                <TouchableOpacity
+                    style={styles.primaryActionBtn}
+                    onPress={() => navigation.navigate('Report', { location })}
+                >
+                    <Text style={styles.primaryActionText}>Report Issue Here</Text>
+                    <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -362,7 +377,7 @@ const styles = StyleSheet.create({
     // Bottom Sheet
     bottomSheet: {
         position: 'absolute',
-        bottom: 80, // Above Nav Bar
+        bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: '#0F1623',
@@ -370,7 +385,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 32,
         padding: 24,
         paddingTop: 12,
-        minHeight: 150,
+        paddingBottom: 110, // Add padding to clear the floating tab bar
+        minHeight: 250,
     },
     handle: {
         width: 40,
@@ -422,5 +438,29 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontSize: 13,
         marginLeft: 4,
+    },
+    sheetActionBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#1E293B',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#334155'
+    },
+    primaryActionBtn: {
+        marginTop: 20,
+        backgroundColor: colors.primary,
+        paddingVertical: 16,
+        borderRadius: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    primaryActionText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });

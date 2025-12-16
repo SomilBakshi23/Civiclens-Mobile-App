@@ -144,7 +144,7 @@ export default function ReportScreen({ navigation }) {
         setLoading(false);
 
         if (result.success) {
-            Alert.alert("Report Submitted", "Your issue has been reported and prioritized.", [
+            Alert.alert("Report Submitted", "Your issue has been reported.\n\n🏆 You earned +10 Civic Score!", [
                 {
                     text: "OK", onPress: () => {
                         // Clear Form
