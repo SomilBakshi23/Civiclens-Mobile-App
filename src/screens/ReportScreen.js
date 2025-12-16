@@ -1,4 +1,3 @@
-
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,9 +38,9 @@ export default function ReportScreen({ navigation }) {
                     });
                     if (address && address.length > 0) {
                         const addr = address[0];
-                        setLocationAddress(`${addr.street || ''} ${addr.name || ''}, ${addr.city}`);
+                        setLocationAddress(`${addr.street || ''} ${addr.name || ''}, ${addr.city} `);
                     } else {
-                        setLocationAddress(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
+                        setLocationAddress(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)} `);
                     }
                 } catch (e) {
                     setLocationAddress("Location unavailable");
@@ -71,15 +70,19 @@ export default function ReportScreen({ navigation }) {
     }
 
     const takePhoto = async () => {
-        let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.5,
-        });
+        try {
+            let result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: false, // Disabling editing to reduce crash risk on low-memory devices
+                quality: 0.5,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
+            if (!result.canceled) {
+                setImage(result.assets[0].uri);
+            }
+        } catch (e) {
+            Alert.alert("Camera Error", "Could not open camera. Please try again or check permissions.");
+            console.error(e);
         }
     };
 
@@ -134,7 +137,7 @@ export default function ReportScreen({ navigation }) {
                         setImage(null);
                         setCategory({ name: 'Infrastructure', icon: 'account-hard-hat' });
                         // Navigate away
-                        navigation.navigate('Home');
+                        navigation.navigate('MainTabs', { screen: 'Home' });
                     }
                 }
             ]);
@@ -194,22 +197,42 @@ export default function ReportScreen({ navigation }) {
                 </View>
 
                 {/* Category Selection */}
-                <View style={styles.tagsRow}>
-                    <TouchableOpacity
-                        style={[styles.tag, category.name === 'Infrastructure' && styles.activeTag]}
-                        onPress={() => setCategory({ name: 'Infrastructure', icon: 'account-hard-hat' })}
-                    >
-                        <MaterialCommunityIcons name="account-hard-hat" size={16} color="#60A5FA" style={{ marginRight: 6 }} />
-                        <Text style={styles.tagText}>Infrastructure</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tag, category.name === 'Electrical' && styles.activeTag]}
-                        onPress={() => setCategory({ name: 'Electrical', icon: 'flash' })}
-                    >
-                        <MaterialCommunityIcons name="flash" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-                        <Text style={styles.tagText}>Electrical</Text>
-                    </TouchableOpacity>
-                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagsRow} contentContainerStyle={{ paddingHorizontal: 20 }}>
+                    {[
+                        { name: 'Infrastructure', icon: 'account-hard-hat', color: '#60A5FA' },
+                        { name: 'Electrical', icon: 'lightning-bolt', color: '#F59E0B' },
+                        { name: 'Sanitation', icon: 'trash-can-outline', color: '#10B981' },
+                        { name: 'Water', icon: 'water', color: '#3B82F6' },
+                        { name: 'Traffic', icon: 'car', color: '#EF4444' },
+                        { name: 'Vandalism', icon: 'wall', color: '#8B5CF6' },
+                        { name: 'Other', icon: 'dots-horizontal', color: '#9CA3AF' }
+                    ].map((item) => (
+                        <TouchableOpacity
+                            key={item.name}
+                            style={[
+                                styles.tag,
+                                category.name === item.name && styles.activeTag,
+                                { marginRight: 12 } // Add gap
+                            ]}
+                            onPress={() => setCategory({ name: item.name, icon: item.icon })}
+                        >
+                            <MaterialCommunityIcons
+                                name={item.icon}
+                                size={16}
+                                // User requested colored icons ("not the whole option"). 
+                                // Even when active, we keep the specific color to show identity, 
+                                // or maybe white if the background is strong? 
+                                // "Electricity icon should be yellow". 
+                                // Let's keep the icon colored always, and maybe the active background is subtle or dark blue.
+                                color={item.color}
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text style={[styles.tagText, category.name === item.name && styles.activeTagText]}>
+                                {item.name}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
 
                 {/* Location */}
                 <View style={styles.section}>
@@ -222,7 +245,7 @@ export default function ReportScreen({ navigation }) {
                         </View>
                         <View style={styles.locationInfo}>
                             <Text style={styles.addressTitle}>{locationAddress}</Text>
-                            <Text style={styles.addressSub}>{location ? `Lat: ${location.coords.latitude.toFixed(5)}, Long: ${location.coords.longitude.toFixed(5)}` : "Waiting for GPS..."}</Text>
+                            <Text style={styles.addressSub}>{location ? `Lat: ${location.coords.latitude.toFixed(5)}, Long: ${location.coords.longitude.toFixed(5)} ` : "Waiting for GPS..."}</Text>
                         </View>
                     </View>
                 </View>

@@ -1,6 +1,6 @@
 // src/services/issueService.js
 import { db } from './firebase';
-import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc, getCountFromServer, where } from "firebase/firestore";
 
 const ISSUES_COLLECTION = 'issues';
 
@@ -154,15 +154,36 @@ export const updateIssueStatus = async (issueId, status) => {
     }
 };
 
-export const getDashboardStats = async () => {
-    // Calculate stats from our reliable local cache
-    const total = localIssues.length;
-    const resolved = localIssues.filter(i => i.status === 'resolved').length;
-    const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
-    return {
-        totalIssues: total,
-        resolvedRate: `${rate}%`,
-        resTime: '48h'
-    };
+
+export const getDashboardStats = async () => {
+    try {
+        const coll = collection(db, ISSUES_COLLECTION);
+        const snapshot = await getCountFromServer(coll);
+        const total = snapshot.data().count;
+
+        // For resolved, we would need a query. For now, let's just estimation or do a second count
+        // Optimizing to just 1 count for "Total Reports" as requested by user, 
+        // but let's try to be accurate if possible without 2 reads if expensive? 
+        // Actually 2 count queries is fine for this scale.
+
+        const qResolved = query(coll, where("status", "==", "resolved"));
+        const snapshotResolved = await getCountFromServer(qResolved);
+        const resolved = snapshotResolved.data().count;
+
+        const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+        return {
+            totalIssues: total,
+            resolvedRate: `${rate}%`,
+            resTime: '48h' // Hardcoded for now as it requires complex calculation
+        };
+    } catch (e) {
+        console.warn("Error fetching stats:", e);
+        return {
+            totalIssues: 0,
+            resolvedRate: '0%',
+            resTime: '48h'
+        };
+    }
 };
