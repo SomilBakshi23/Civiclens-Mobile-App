@@ -3,7 +3,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 // We need to import 'auth' from firebase/auth getting initialized app but instructions say init in firebase.js
 // Actually, firebase.js exports 'app'. Use getAuth(app).
 import { getAuth } from "firebase/auth";
-import { app } from '../services/firebase';
+import { app, auth } from '../services/firebase';
 
 export const AuthContext = createContext();
 
@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [isGuest, setIsGuest] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const auth = getAuth(app);
+    // const auth = getAuth(app); // Removed: using persistent auth instance from services/firebase
 
     // Persist login state
     useEffect(() => {
