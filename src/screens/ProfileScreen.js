@@ -82,29 +82,11 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                     <View style={styles.profileInfo}>
                         <Text style={styles.name}>{displayName}</Text>
-                        <Text style={styles.location}>{displayArea}</Text>
+                        <Text style={styles.location}>{user?.email || "No Email"}</Text>
                         <View style={styles.civicIdBadge}>
                             <Text style={styles.civicIdLabel}>CIVIC ID: </Text>
                             <Text style={styles.civicIdValue}>{displayCivicId}</Text>
                         </View>
-                    </View>
-                </View>
-
-                {/* Stats Row */}
-                <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{profile?.civicScore || 0}</Text>
-                        <Text style={styles.statLabel}>Civic Score</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{profile?.reportsCount || 0}</Text>
-                        <Text style={styles.statLabel}>Reports</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{profile?.rank || "New"}</Text>
-                        <Text style={styles.statLabel}>Rank</Text>
                     </View>
                 </View>
 
