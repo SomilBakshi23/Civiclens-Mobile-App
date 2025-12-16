@@ -1,10 +1,13 @@
-import React from 'react';
+
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'; // Using default for Expo Go
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { AuthContext } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
+
 
 // Custom Map Style for Dark Mode
 const mapDarkStyle = [
@@ -105,7 +108,8 @@ const mapDarkStyle = [
     }
 ];
 
-export default function MapScreen() {
+export default function MapScreen({ navigation }) {
+    const { profile } = useContext(AuthContext);
     return (
         <View style={styles.container}>
             <MapView
@@ -151,14 +155,19 @@ export default function MapScreen() {
             {/* Top Overlays */}
             <View style={styles.topContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.menuBtn}>
+                    <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.navigate('UserDashboard')}>
                         <Ionicons name="menu" size={24} color="#64748B" />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <Text style={styles.appTitle}>CivicLens</Text>
                         <Text style={styles.subtitle}>PUBLIC DASHBOARD</Text>
                     </View>
-                    <Image source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }} style={styles.avatar} />
+                    <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                        <Image
+                            source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }}
+                            style={styles.avatar}
+                        />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Search Bar */}
