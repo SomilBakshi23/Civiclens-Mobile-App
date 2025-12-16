@@ -1,18 +1,33 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { FeedCard } from '../components/IssueCard';
+import { getDashboardStats } from '../services/issueService';
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen() {
+
+    const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
+
+    useFocusEffect(
+        useCallback(() => {
+            async function fetchStats() {
+                const s = await getDashboardStats();
+                setStats(s);
+            }
+            fetchStats();
+        }, [])
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
+                <TouchableOpacity>
                     <Ionicons name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Community Pulse</Text>
@@ -47,6 +62,22 @@ export default function DashboardScreen({ navigation }) {
                     </View>
                 </View>
 
+                {/* Dashboard Stats from Firestore */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                    <View style={styles.miniStat}>
+                        <Text style={styles.miniLabel}>Total Issues</Text>
+                        <Text style={styles.miniValue}>{stats.totalIssues}</Text>
+                    </View>
+                    <View style={styles.miniStat}>
+                        <Text style={styles.miniLabel}>Resolution Rate</Text>
+                        <Text style={[styles.miniValue, { color: '#4ADE80' }]}>{stats.resolvedRate}</Text>
+                    </View>
+                    <View style={styles.miniStat}>
+                        <Text style={styles.miniLabel}>Avg Time</Text>
+                        <Text style={[styles.miniValue, { color: '#F59E0B' }]}>{stats.resTime}</Text>
+                    </View>
+                </View>
+
                 {/* Filters */}
                 <View style={styles.filterRow}>
                     <TouchableOpacity style={styles.activeFilter}>
@@ -63,6 +94,7 @@ export default function DashboardScreen({ navigation }) {
                 </View>
 
                 {/* Feed */}
+                {/* Using static feed here as dashboard might have different queries, but demonstrating service integration in stats above */}
                 <FeedCard
                     item={{
                         status: 'Resolved',
@@ -77,35 +109,8 @@ export default function DashboardScreen({ navigation }) {
                     }}
                 />
 
-                <FeedCard
-                    item={{
-                        status: 'Open',
-                        imageUrl: 'https://images.unsplash.com/photo-1550524514-c6c4e03598d4?q=80&w=1000&auto=format&fit=crop', // Street light dark
-                        timeAgo: '5h ago',
-                        title: 'Streetlight Outage - Sector 4',
-                        description: 'Lights are completely out near the playground entrance. It\'s very dark and feels unsafe for kids walking home.',
-                        department: 'Civic Energy',
-                        verified: false,
-                        votes: 125,
-                        comments: 12,
-                    }}
-                />
-
             </ScrollView>
 
-            {/* Daily Streak Floating */}
-            <View style={styles.streakCard}>
-                <View style={styles.streakIcon}>
-                    <Ionicons name="star" size={16} color="white" />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.streakTitle}>Daily Streak!</Text>
-                    <Text style={styles.streakSub}>Log in tomorrow for +50 pts</Text>
-                </View>
-                <Text style={styles.viewLink}>VIEW</Text>
-            </View>
-
-            {/* FAB */}
             <TouchableOpacity style={styles.fab}>
                 <Ionicons name="add" size={32} color="white" />
             </TouchableOpacity>
@@ -156,7 +161,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#1E293B',
-        // Glow effect simulation
         shadowColor: '#3B82F6',
         shadowOpacity: 0.1,
         shadowRadius: 10,
@@ -204,6 +208,27 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
 
+    // Mini Stats for Dashboard
+    miniStat: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+    },
+    miniLabel: {
+        color: colors.textSecondary,
+        fontSize: 10,
+        marginBottom: 4,
+    },
+    miniValue: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+
     // Filters
     filterRow: {
         flexDirection: 'row',
@@ -235,45 +260,6 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontWeight: '600',
         fontSize: 12,
-    },
-
-    // Streak
-    streakCard: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 80, // Leave room for FAB
-        backgroundColor: '#0F1623',
-        borderRadius: 16,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#1E293B',
-        // Gradient border simulation via separate component is hard, stick to solid
-    },
-    streakIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#1D4ED8',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    streakTitle: {
-        color: 'white',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    streakSub: {
-        color: '#94A3B8',
-        fontSize: 11,
-    },
-    viewLink: {
-        color: '#3B82F6',
-        fontSize: 11,
-        fontWeight: '700',
     },
 
     // FAB

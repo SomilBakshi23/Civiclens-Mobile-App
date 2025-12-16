@@ -1,13 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { createIssue } from '../services/issueService';
+import { calculatePriority } from '../utils/priorityEngine';
 
 const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
     const [description, setDescription] = useState('');
+    const [title, setTitle] = useState(''); // Added title state
+    const [category, setCategory] = useState({ name: 'Infrastructure', icon: 'account-hard-hat' }); // Default category
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!description.trim() || !title.trim()) {
+            Alert.alert("Missing Details", "Please provide a title and description.");
+            return;
+        }
+
+        setLoading(true);
+
+        const priority = calculatePriority(category.name + " " + title, 0);
+
+        const issueData = {
+            title: title,
+            description: description,
+            category: category.name,
+            priority: priority,
+            location: '124 Main St. (Auto)', // Location is mocked per requirement
+            imageUrl: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=400', // Mock image for demo
+        };
+
+        const result = await createIssue(issueData);
+
+        setLoading(false);
+
+        if (result.success) {
+            Alert.alert("Report Submitted", "Your issue has been reported and prioritized.", [
+                { text: "OK", onPress: () => navigation.navigate('Home') }
+            ]);
+        } else {
+            Alert.alert("Error", "Could not submit report. Please try again.");
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -29,20 +66,17 @@ export default function ReportScreen({ navigation }) {
                     <View style={styles.flashBtn}>
                         <Ionicons name="flash" size={16} color="white" />
                     </View>
-
-                    {/* Mock Camera View */}
                     <View style={styles.cameraView}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }} // Dark crack texture
-                            style={[StyleSheet.absoluteFill, { opacity: 0.2 }]} // Simulating dark camera feed
+                            source={{ uri: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }}
+                            style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
                         />
                         <View style={styles.scanTarget}>
                             <MaterialCommunityIcons name="crop-free" size={48} color="white" />
                         </View>
                     </View>
-
                     <View style={styles.detectionOverlay}>
-                        <Text style={styles.detectedTitle}>Pothole Detected</Text>
+                        <Text style={styles.detectedTitle}>{title || "Detecting Issue..."}</Text>
                         <View style={styles.confidenceBadge}>
                             <MaterialCommunityIcons name="check-decagram" size={14} color="#3B82F6" />
                             <Text style={styles.confidenceText}>98% Confidence Match</Text>
@@ -50,19 +84,35 @@ export default function ReportScreen({ navigation }) {
                     </View>
                 </View>
 
-                {/* Tags */}
+                {/* Title Input (New Requirement) */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>ISSUE TITLE</Text>
+                    <View style={styles.inputContainerSm}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g., Pothole on 5th Ave"
+                            placeholderTextColor={colors.textTertiary}
+                            value={title}
+                            onChangeText={setTitle}
+                        />
+                    </View>
+                </View>
+
+                {/* Category Selection (Simplified for Demo) */}
                 <View style={styles.tagsRow}>
-                    <View style={styles.tag}>
+                    <TouchableOpacity
+                        style={[styles.tag, category.name === 'Infrastructure' && styles.activeTag]}
+                        onPress={() => setCategory({ name: 'Infrastructure', icon: 'account-hard-hat' })}
+                    >
                         <MaterialCommunityIcons name="account-hard-hat" size={16} color="#60A5FA" style={{ marginRight: 6 }} />
                         <Text style={styles.tagText}>Infrastructure</Text>
-                    </View>
-                    <View style={[styles.tag, { borderColor: '#F87171', backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                        <MaterialCommunityIcons name="alert" size={16} color="#F87171" style={{ marginRight: 6 }} />
-                        <Text style={[styles.tagText, { color: '#F87171' }]}>High Priority</Text>
-                    </View>
-                    <TouchableOpacity style={styles.addTag}>
-                        <Ionicons name="add" size={16} color={colors.textSecondary} />
-                        <Text style={styles.addTagText}>Add Tag</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tag, category.name === 'Electrical' && styles.activeTag]}
+                        onPress={() => setCategory({ name: 'Electrical', icon: 'flash' })}
+                    >
+                        <MaterialCommunityIcons name="flash" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+                        <Text style={styles.tagText}>Electrical</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -71,7 +121,6 @@ export default function ReportScreen({ navigation }) {
                     <Text style={styles.sectionLabel}>LOCATION</Text>
                     <View style={styles.locationCard}>
                         <View style={styles.mapSnippet}>
-                            {/* Placeholder for map snippet */}
                             <View style={{ flex: 1, backgroundColor: '#2C3E50', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
                                 <Ionicons name="location" size={20} color="#60A5FA" />
                             </View>
@@ -80,9 +129,6 @@ export default function ReportScreen({ navigation }) {
                             <Text style={styles.addressTitle}>124 Main St. (Auto-detected)</Text>
                             <Text style={styles.addressSub}>San Francisco, CA 94105</Text>
                         </View>
-                        <TouchableOpacity style={styles.editPin}>
-                            <MaterialCommunityIcons name="crosshairs-gps" size={20} color={colors.primary} />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -92,7 +138,7 @@ export default function ReportScreen({ navigation }) {
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.input}
-                            placeholder="Describe the issue briefly... (AI suggests: Deep pothole on right lane causing traffic slowdown)"
+                            placeholder="Describe the issue briefly..."
                             placeholderTextColor={colors.textTertiary}
                             multiline
                             value={description}
@@ -104,28 +150,19 @@ export default function ReportScreen({ navigation }) {
                     </View>
                 </View>
 
-                {/* Media Actions */}
-                <View style={styles.mediaActions}>
-                    <TouchableOpacity style={styles.mediaBtn}>
-                        <Ionicons name="images" size={24} color={colors.textSecondary} />
-                        <Text style={styles.mediaText}>Gallery</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.captureBtnOuter}>
-                        <TouchableOpacity style={styles.captureBtnInner}>
-                            <Ionicons name="camera" size={28} color="black" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity style={styles.mediaBtn}>
-                        <Ionicons name="videocam" size={24} color={colors.textSecondary} />
-                        <Text style={styles.mediaText}>Video</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity style={styles.submitBtn}>
-                    <Text style={styles.submitText}>Submit Report</Text>
-                    <Ionicons name="send" size={20} color="white" style={{ marginLeft: 8 }} />
+                <TouchableOpacity
+                    style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+                    onPress={handleSubmit}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <>
+                            <Text style={styles.submitText}>Submit Report</Text>
+                            <Ionicons name="send" size={20} color="white" style={{ marginLeft: 8 }} />
+                        </>
+                    )}
                 </TouchableOpacity>
 
             </ScrollView>
@@ -248,25 +285,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
+    activeTag: {
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderColor: colors.primary,
+    },
     tagText: {
         color: colors.textPrimary,
         fontSize: 12,
         fontWeight: '600',
-    },
-    addTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderStyle: 'dashed',
-    },
-    addTagText: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        marginLeft: 4,
     },
 
     // Section
@@ -309,9 +335,6 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         fontSize: 12,
     },
-    editPin: {
-        padding: 8,
-    },
 
     // Input
     inputContainer: {
@@ -321,6 +344,13 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         padding: 16,
         height: 120,
+    },
+    inputContainerSm: {
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 16,
     },
     input: {
         color: 'white',
@@ -341,45 +371,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    // Media Actions
-    mediaActions: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 20,
-        gap: 30,
-    },
-    mediaBtn: {
-        alignItems: 'center',
-    },
-    mediaText: {
-        color: colors.textSecondary,
-        fontSize: 10,
-        marginTop: 4,
-    },
-    captureBtnOuter: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        borderWidth: 4,
-        borderColor: 'rgba(59, 130, 246, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    captureBtnInner: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
     // Submit
     submitBtn: {
         backgroundColor: colors.primary,
@@ -394,6 +385,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 6,
+        marginTop: 24,
     },
     submitText: {
         color: 'white',
