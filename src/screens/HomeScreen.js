@@ -1,11 +1,48 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Dimensions, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
+import { getAllIssues, upvoteIssue, getDashboardStats } from '../services/issueService';
 
 export default function HomeScreen({ navigation }) {
+    const [issues, setIssues] = useState([]);
+    const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadData = async () => {
+        // Parallel fetch for speed
+        const [fetchedIssues, fetchedStats] = await Promise.all([
+            getAllIssues(),
+            getDashboardStats()
+        ]);
+        setIssues(fetchedIssues);
+        setStats(fetchedStats);
+        setLoading(false);
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
+
+    // Reload when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
+
+    const handleUpvote = async (issueId) => {
+        await upvoteIssue(issueId);
+        // Optimistic update could go here, or just reload
+        loadData();
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={colors.background} />
@@ -27,7 +64,11 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+            >
                 {/* Hero Section */}
                 <View style={styles.hero}>
                     <View style={styles.systemStatus}>
@@ -54,7 +95,6 @@ export default function HomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Background Effect: A subtle image or gradient replica */}
                     <Image
                         source={{ uri: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1000&auto=format&fit=crop' }}
                         style={styles.heroBg}
@@ -63,33 +103,33 @@ export default function HomeScreen({ navigation }) {
                     <View style={styles.overlay} />
                 </View>
 
-                {/* Live Impact */}
+                {/* Live Impact (Dynamic) */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Live Impact</Text>
                     <Text style={styles.updateTime}>
-                        <Ionicons name="time-outline" size={12} color={colors.textSecondary} /> Updated 2m ago
+                        <Ionicons name="time-outline" size={12} color={colors.textSecondary} /> Updated just now
                     </Text>
                 </View>
 
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Text style={styles.statLabel}>REPORTS</Text>
-                        <Text style={styles.statValue}>142</Text>
+                        <Text style={styles.statValue}>{stats.totalIssues}</Text>
                         <Text style={[styles.statTrend, { color: '#60A5FA' }]}>↗ +12%</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statLabel}>RESOLVED</Text>
-                        <Text style={styles.statValue}>89%</Text>
+                        <Text style={styles.statValue}>{stats.resolvedRate}</Text>
                         <Text style={[styles.statTrend, { color: '#4ADE80' }]}>✓ +5%</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statLabel}>FIX TIME</Text>
-                        <Text style={styles.statValue}>48h</Text>
+                        <Text style={styles.statValue}>{stats.resTime}</Text>
                         <Text style={[styles.statTrend, { color: '#F59E0B' }]}>↘ -2h</Text>
                     </View>
                 </View>
 
-                {/* Active Issues Map Preview */}
+                {/* Active Issues Map Preview (Static preserved per design) */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Active Issues Map</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Map')}>
@@ -98,28 +138,15 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
                 <View style={styles.mapPreviewCard}>
-                    {/* Mock Map UI */}
-                    <Image
-                        source={{ uri: 'https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/-122.4194,37.7749,12,0/600x300?access_token=pk.mock' }} // Won't load without token, using fallback style
-                        style={[StyleSheet.absoluteFill, { opacity: 0.3 }]}
-                    />
-                    {/* Fallback pattern for map */}
                     <View style={[StyleSheet.absoluteFill, styles.mapPattern]} />
-
                     <View style={styles.radarEffect}>
                         <View style={styles.radarCircle} />
                         <Ionicons name="add" size={24} color="white" />
                     </View>
-
-                    {/* Floating Map Actions */}
                     <View style={styles.mapControls}>
                         <View style={styles.controlIcon}><Ionicons name="home" size={18} color={colors.primary} /></View>
                         <View style={styles.controlIcon}><Ionicons name="map" size={18} color={colors.textSecondary} /></View>
-                        <View style={{ width: 50 }} />
-                        <View style={styles.controlIcon}><MaterialCommunityIcons name="clipboard-text" size={18} color={colors.textSecondary} /></View>
-                        <View style={styles.controlIcon}><Ionicons name="person" size={18} color={colors.textSecondary} /></View>
                     </View>
-
                     <View style={styles.nearbyAlert}>
                         <View style={styles.alertIcon}>
                             <MaterialCommunityIcons name="target" size={20} color="white" />
@@ -134,20 +161,37 @@ export default function HomeScreen({ navigation }) {
                     </View>
                 </View>
 
-                {/* Recent Activity */}
+                {/* Recent Activity (Dynamic) */}
                 <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12 }]}>Recent Activity</Text>
 
-                <IssueCard
-                    title="Pothole on 5th Ave"
-                    location="Reported 2 hours ago • ID #4921"
-                    status="Resolved"
-                    image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6sCqSgVzZ3qQ6j3y8q2Z9n4Y5t6o7p8q9rA&usqp=CAU"
-                />
-                <IssueCard
-                    title="Street Light Outage"
-                    location="Main St & Oak • AI Verified"
-                    status="In Progress"
-                />
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.primary} />
+                ) : (
+                    issues.map((item) => (
+                        <View key={item.id} style={{ position: 'relative' }}>
+                            <IssueCard
+                                title={item.title}
+                                location={`${item.priority?.toUpperCase()} • ${item.category}`}
+                                status={item.status}
+                                image={item.imageUrl}
+                                id={item.id}
+                            />
+                            {/* Hacky way to add upvote to IssueCard without modifying IssueCard props extensively if not passed down, 
+                        BUT IssueCard doesn't have an upvote button in design logic. 
+                        I will stick to the List view. 
+                        Requirement: "Display title, category, priority, upvote button (calls upvoteIssue)"
+                        I need to modify IssueCard or wrap it.
+                    */}
+                            <TouchableOpacity
+                                style={styles.floatingUpvote}
+                                onPress={() => handleUpvote(item.id)}
+                            >
+                                <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
+                                <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))
+                )}
 
             </ScrollView>
         </SafeAreaView>
@@ -355,10 +399,8 @@ const styles = StyleSheet.create({
     },
     mapPattern: {
         backgroundColor: colors.background,
-        // Should ideally be a real map view but user wants pixel replication, image is safer if no key? 
-        // I'll stick to the dark bg and the icons as map abstraction
     },
-    radarEffect: { // The center + button and ripple
+    radarEffect: {
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
@@ -370,7 +412,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         backgroundColor: colors.primary,
         opacity: 0.2,
-        transform: [{ scale: 2 }], // Ripple effect simulation
+        transform: [{ scale: 2 }],
     },
     mapControls: {
         position: 'absolute',
@@ -429,4 +471,25 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+
+    // List Upvote Button Overlay
+    floatingUpvote: {
+        position: 'absolute',
+        right: 16,
+        top: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(59, 130, 246, 0.4)',
+    },
+    upvoteCount: {
+        color: 'white',
+        fontSize: 10,
+        marginLeft: 4,
+        fontWeight: '700',
+    }
 });
