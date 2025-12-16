@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -78,7 +78,11 @@ export default function UserDashboardScreen({ navigation }) {
                 <View style={styles.ratingCard}>
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
-                            <Ionicons name="person" size={40} color="white" />
+                            {profile?.photoURL ? (
+                                <Image source={{ uri: profile.photoURL }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
+                            ) : (
+                                <Ionicons name="person" size={40} color="white" />
+                            )}
                         </View>
                         {!isGuest && (
                             <View style={styles.rankBadge}>

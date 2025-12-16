@@ -1,14 +1,17 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { updateUserProfile } from '../services/userService';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }) {
-    const { user, profile, logout, isGuest } = useContext(AuthContext);
+    const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
+    const [updatingImage, setUpdatingImage] = useState(false);
 
     const handleLogout = () => {
         Alert.alert(
@@ -19,6 +22,39 @@ export default function ProfileScreen({ navigation }) {
                 { text: "Log Out", style: "destructive", onPress: () => logout() }
             ]
         );
+    };
+
+    const pickImage = async () => {
+        if (isGuest) {
+            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setUpdatingImage(true);
+            const newPhotoURL = result.assets[0].uri;
+
+            const updateData = {
+                photoURL: newPhotoURL
+            };
+
+            const updateResult = await updateUserProfile(user.uid, updateData);
+
+            if (updateResult.success) {
+                await refreshProfile();
+                Alert.alert("Success", "Profile photo updated!");
+            } else {
+                Alert.alert("Error", "Failed to update profile photo.");
+            }
+            setUpdatingImage(false);
+        }
     };
 
     // Safe access to profile data (Guest fallback)
@@ -37,12 +73,12 @@ export default function ProfileScreen({ navigation }) {
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }} // Placeholder Avatar
+                            source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }} // Avatar from Profile
                             style={styles.avatar}
                         />
-                        <View style={styles.editBadge}>
-                            <Ionicons name="pencil" size={12} color="white" />
-                        </View>
+                        <TouchableOpacity style={styles.editBadge} onPress={pickImage} disabled={updatingImage}>
+                            {updatingImage ? <ActivityIndicator size="small" color="white" /> : <Ionicons name="pencil" size={14} color="white" />}
+                        </TouchableOpacity>
                     </View>
                     <View style={styles.profileInfo}>
                         <Text style={styles.name}>{displayName}</Text>

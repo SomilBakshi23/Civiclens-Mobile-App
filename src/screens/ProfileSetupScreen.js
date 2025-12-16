@@ -1,7 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { updateUserProfile } from '../services/userService';
@@ -11,6 +12,9 @@ export default function ProfileSetupScreen() {
 
     const [name, setName] = useState('');
     const [area, setArea] = useState('');
+    const [gender, setGender] = useState(''); // 'male', 'female', 'other'
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [isCustomAvatar, setIsCustomAvatar] = useState(false); // Track if user manually picked/randomized
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Pre-fill only if editing (Profile Complete). If setup (Incomplete), force empty.
@@ -18,12 +22,58 @@ export default function ProfileSetupScreen() {
         if (profile && profile.isProfileComplete) {
             if (profile.name) setName(profile.name);
             if (profile.area) setArea(profile.area);
+            if (profile.gender) setGender(profile.gender);
+            if (profile.photoURL) {
+                setAvatarUrl(profile.photoURL);
+                setIsCustomAvatar(true);
+            }
         }
     }, [profile]);
+
+    // Auto-set default avatar based on gender if NOT custom
+    useEffect(() => {
+        if (!isCustomAvatar) {
+            if (gender === 'male') {
+                setAvatarUrl('https://api.dicebear.com/7.x/avataaars/png?seed=Felix');
+            } else if (gender === 'female') {
+                setAvatarUrl('https://api.dicebear.com/7.x/avataaars/png?seed=Aneka');
+            } else {
+                setAvatarUrl('https://api.dicebear.com/7.x/avataaars/png?seed=CivicLensUsers'); // Catch-all default
+            }
+        }
+    }, [gender, isCustomAvatar]);
+
+
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"], // New format: ImagePicker.MediaType.Images is deprecated
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setAvatarUrl(result.assets[0].uri);
+            setIsCustomAvatar(true);
+        }
+    };
+
+    const randomizeAvatar = () => {
+        const randomSeed = Math.random().toString(36).substring(7);
+        // Using 'avataaars' style for a fun look, or 'micah' / 'notionists' for modern feel. 'avataaars' is standard.
+        // NOT restricting by gender as requested.
+        const newAvatar = `https://api.dicebear.com/7.x/avataaars/png?seed=${randomSeed}`;
+        setAvatarUrl(newAvatar);
+        setIsCustomAvatar(true);
+    };
 
     const handleCompleteSetup = async () => {
         if (!name.trim() || !area.trim()) {
             Alert.alert("Required Fields", "Please enter your full name and local area.");
+            return;
+        }
+        if (!gender) {
+            Alert.alert("Required Fields", "Please select your gender.");
             return;
         }
 
@@ -32,6 +82,8 @@ export default function ProfileSetupScreen() {
         const updateData = {
             name: name.trim(),
             area: area.trim(),
+            gender: gender,
+            photoURL: avatarUrl,
             isProfileComplete: true, // Mark as complete!
         };
 
@@ -57,7 +109,7 @@ export default function ProfileSetupScreen() {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ color: 'white', marginTop: 10 }}>Loading Profile...</Text>
+                <Text style={styles.loadingText}>Loading Profile...</Text>
             </View>
         );
     }
@@ -69,11 +121,28 @@ export default function ProfileSetupScreen() {
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <View style={styles.iconBadge}>
-                            <MaterialCommunityIcons name="card-account-details-outline" size={32} color={colors.primary} />
-                        </View>
                         <Text style={styles.title}>Complete Your Profile</Text>
                         <Text style={styles.subtitle}>You're almost there! We've generated your unique Civic ID.</Text>
+                    </View>
+
+                    {/* Avatar Section */}
+                    <View style={styles.avatarSection}>
+                        <View style={styles.avatarContainer}>
+                            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                            <TouchableOpacity style={styles.editIconBadge} onPress={pickImage}>
+                                <Ionicons name="camera" size={20} color="white" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.avatarActions}>
+                            <TouchableOpacity style={styles.actionBtn} onPress={pickImage}>
+                                <Text style={styles.actionBtnText}>Upload Photo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={randomizeAvatar}>
+                                <MaterialCommunityIcons name="dice-3" size={18} color={colors.primary} style={{ marginRight: 4 }} />
+                                <Text style={[styles.actionBtnText, { color: colors.primary }]}>Randomize</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Validated Civic ID Card */}
@@ -88,6 +157,36 @@ export default function ProfileSetupScreen() {
 
                     {/* Form */}
                     <View style={styles.formContainer}>
+
+                        {/* Gender Selection */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Gender</Text>
+                            <View style={styles.genderContainer}>
+                                {['male', 'female', 'other'].map((g) => (
+                                    <TouchableOpacity
+                                        key={g}
+                                        style={[
+                                            styles.genderOption,
+                                            gender === g && styles.genderOptionSelected
+                                        ]}
+                                        onPress={() => setGender(g)}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name={g === 'male' ? 'gender-male' : g === 'female' ? 'gender-female' : 'gender-non-binary'}
+                                            size={20}
+                                            color={gender === g ? 'white' : colors.textSecondary}
+                                        />
+                                        <Text style={[
+                                            styles.genderText,
+                                            gender === g && styles.genderTextSelected
+                                        ]}>
+                                            {g.charAt(0).toUpperCase() + g.slice(1)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Full Name</Text>
                             <TextInput
@@ -140,25 +239,19 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    loadingText: {
+        color: 'white',
+        marginTop: 10,
+    },
     scrollContent: {
         flexGrow: 1,
         padding: 24,
-        justifyContent: 'center'
+        alignItems: 'center',
     },
     header: {
         alignItems: 'center',
-        marginBottom: 32,
-    },
-    iconBadge: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: colors.primary,
+        marginBottom: 24,
+        marginTop: 10,
     },
     title: {
         fontSize: 24,
@@ -173,6 +266,59 @@ const styles = StyleSheet.create({
         marginTop: 8,
         maxWidth: '80%',
     },
+    avatarSection: {
+        alignItems: 'center',
+        marginBottom: 32,
+        width: '100%',
+    },
+    avatarContainer: {
+        position: 'relative',
+        marginBottom: 16,
+    },
+    avatar: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 4,
+        borderColor: colors.surfaceLight,
+        backgroundColor: colors.surface,
+    },
+    editIconBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: colors.primary,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 4,
+        borderColor: colors.background,
+    },
+    avatarActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    actionBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    secondaryBtn: {
+        backgroundColor: 'transparent',
+        borderColor: colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionBtnText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+    },
     civicIdCard: {
         backgroundColor: '#0F1623',
         borderRadius: 16,
@@ -181,6 +327,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#334155',
         marginBottom: 32,
+        width: '100%',
         shadowColor: "black",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -238,6 +385,34 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
+    genderContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    genderOption: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surface,
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        gap: 6,
+    },
+    genderOptionSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    genderText: {
+        color: colors.textSecondary,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    genderTextSelected: {
+        color: 'white',
+    },
     submitBtn: {
         backgroundColor: colors.primary,
         borderRadius: 12,
@@ -256,3 +431,4 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 });
+
