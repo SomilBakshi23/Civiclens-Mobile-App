@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, RefreshControl, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
 import { getAllIssues, upvoteIssue, getDashboardStats } from '../services/issueService';
+import { AuthContext } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
+    const { isGuest, logout } = useContext(AuthContext); // Access Auth Context
+
     const [issues, setIssues] = useState([]);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
     const [loading, setLoading] = useState(true);
@@ -38,6 +41,14 @@ export default function HomeScreen({ navigation }) {
     );
 
     const handleUpvote = async (issueId) => {
+        if (isGuest) {
+            Alert.alert("Login Required", "Guest users cannot upvote issues. Please login to contribute.", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Login", onPress: () => logout() } // Logout takes them back to AuthScreen
+            ]);
+            return;
+        }
+
         await upvoteIssue(issueId);
         // Optimistic update could go here, or just reload
         loadData();

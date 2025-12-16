@@ -83,6 +83,15 @@ function BottomTabNavigator() {
           ),
         }}
       />
+      {/* Hidden UserDashboard Tab if needed, based on previous code */}
+      <Tab.Screen
+        name="UserDashboard"
+        component={UserDashboardScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
       <Tab.Screen
         name="UserDashboard"
         component={UserDashboardScreen}
