@@ -10,21 +10,21 @@ export default function UserDashboardScreen({ navigation }) {
 
     // Mock user data (keep for stats visuals)
     const userStats = {
-        starRating: profile?.civicScore ? (profile.civicScore / 100) : 4.5, // Mock calc or use default
-        totalReports: 42,
-        verifiedReports: 38,
-        ranking: 'Top 5%'
+        starRating: profile?.civicScore ? (profile.civicScore / 20).toFixed(1) : "5.0", // 100 points = 5.0
+        totalReports: profile?.reportsCount || 0,
+        verifiedReports: profile?.verifiedCount || 0,
+        ranking: profile?.rank || 'New Citizen'
     };
 
     // Category data with report counts
     const categories = [
-        { id: 1, name: 'Pothole', icon: 'alert-octagon', count: 12, color: '#EAB308' },
-        { id: 2, name: 'Street Light', icon: 'lightbulb-on', count: 8, color: '#F97316' },
-        { id: 3, name: 'Garbage', icon: 'delete', count: 15, color: '#EF4444' },
-        { id: 4, name: 'Water Leak', icon: 'water', count: 3, color: '#3B82F6' },
-        { id: 5, name: 'Traffic', icon: 'car', count: 2, color: '#A855F7' },
-        { id: 6, name: 'Vandalism', icon: 'wall', count: 1, color: '#64748B' },
-        { id: 7, name: 'Other', icon: 'dots-horizontal', count: 1, color: '#10B981' },
+        { id: 1, name: 'Pothole', icon: 'alert-octagon', count: 0, color: '#EAB308' },
+        { id: 2, name: 'Street Light', icon: 'lightbulb-on', count: 0, color: '#F97316' },
+        { id: 3, name: 'Garbage', icon: 'delete', count: 0, color: '#EF4444' },
+        { id: 4, name: 'Water Leak', icon: 'water', count: 0, color: '#3B82F6' },
+        { id: 5, name: 'Traffic', icon: 'car', count: 0, color: '#A855F7' },
+        { id: 6, name: 'Vandalism', icon: 'wall', count: 0, color: '#64748B' },
+        { id: 7, name: 'Other', icon: 'dots-horizontal', count: 0, color: '#10B981' },
     ];
 
     const [selectedCategory, setSelectedCategory] = useState(null);
