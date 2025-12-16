@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
-import { upvoteIssue } from '../services/issueService';
+import { upvoteIssue, deleteIssue } from '../services/issueService';
 import MapView, { Marker } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
@@ -122,6 +122,35 @@ export default function IssueDetailsScreen({ route, navigation }) {
                         <MaterialCommunityIcons name="thumb-up" size={24} color="white" />
                         <Text style={styles.upvoteText}>Upvote Issue ({likes})</Text>
                     </TouchableOpacity>
+
+                    {/* Delete Option (Owner Only) */}
+                    {user && issue.reportedBy === user.uid && (
+                        <TouchableOpacity style={styles.deleteButton} onPress={() => {
+                            Alert.alert(
+                                "Delete Report",
+                                "Are you sure you want to delete this report? This action cannot be undone.",
+                                [
+                                    { text: "Cancel", style: "cancel" },
+                                    {
+                                        text: "Delete",
+                                        style: "destructive",
+                                        onPress: async () => {
+                                            const success = await deleteIssue(issue.id);
+                                            if (success) {
+                                                Alert.alert("Deleted", "Your report has been removed.");
+                                                navigation.goBack();
+                                            } else {
+                                                Alert.alert("Error", "Could not delete report.");
+                                            }
+                                        }
+                                    }
+                                ]
+                            );
+                        }}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
+                            <Text style={styles.deleteText}>Delete Report</Text>
+                        </TouchableOpacity>
+                    )}
 
                 </View>
             </ScrollView>
@@ -259,5 +288,23 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 12,
+    },
+    deleteButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        marginTop: -24, // pull up closer to upvote button OR remove margin from upvote button 
+        marginBottom: 40,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    deleteText: {
+        color: '#EF4444',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 8,
     },
 });

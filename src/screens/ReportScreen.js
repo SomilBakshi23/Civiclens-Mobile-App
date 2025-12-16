@@ -72,7 +72,7 @@ export default function ReportScreen({ navigation }) {
     const takePhoto = async () => {
         try {
             let result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ImagePicker.MediaType.Images,
                 allowsEditing: false, // Disabling editing to reduce crash risk on low-memory devices
                 quality: 0.5,
             });

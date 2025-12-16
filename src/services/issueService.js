@@ -155,17 +155,26 @@ export const updateIssueStatus = async (issueId, status) => {
 };
 
 
+export const deleteIssue = async (issueId) => {
+    try {
+        const issueRef = doc(db, ISSUES_COLLECTION, issueId);
+        await updateDoc(issueRef, {
+            status: 'deleted'
+        });
+        return true;
+    } catch (e) {
+        console.error("Error deleting issue: ", e);
+        return false;
+    }
+};
 
 export const getDashboardStats = async () => {
     try {
         const coll = collection(db, ISSUES_COLLECTION);
-        const snapshot = await getCountFromServer(coll);
+        // Exclude deleted issues from total count
+        const qTotal = query(coll, where("status", "!=", "deleted"));
+        const snapshot = await getCountFromServer(qTotal);
         const total = snapshot.data().count;
-
-        // For resolved, we would need a query. For now, let's just estimation or do a second count
-        // Optimizing to just 1 count for "Total Reports" as requested by user, 
-        // but let's try to be accurate if possible without 2 reads if expensive? 
-        // Actually 2 count queries is fine for this scale.
 
         const qResolved = query(coll, where("status", "==", "resolved"));
         const snapshotResolved = await getCountFromServer(qResolved);
@@ -176,7 +185,7 @@ export const getDashboardStats = async () => {
         return {
             totalIssues: total,
             resolvedRate: `${rate}%`,
-            resTime: '48h' // Hardcoded for now as it requires complex calculation
+            resTime: '48h'
         };
     } catch (e) {
         console.warn("Error fetching stats:", e);

@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore';
 import { upvoteIssue, getDashboardStats } from '../services/issueService';
 import { AuthContext } from '../context/AuthContext';
 
@@ -24,7 +24,7 @@ export default function HomeScreen({ navigation }) {
             const statsPromise = getDashboardStats();
 
             // Fetch Real Issues from Firestore
-            const q = query(collection(db, "issues"), orderBy("createdAt", "desc"), limit(20));
+            const q = query(collection(db, "issues"), where("status", "!=", "deleted"), orderBy("createdAt", "desc"), limit(20));
             const querySnapshot = await getDocs(q);
             const fetchedIssues = [];
             querySnapshot.forEach((doc) => {

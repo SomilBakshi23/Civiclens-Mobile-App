@@ -6,7 +6,7 @@ import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
@@ -17,13 +17,15 @@ export default function UserDashboardScreen({ navigation }) {
     useFocusEffect(
         useCallback(() => {
             const loadData = async () => {
-                if (!user && !isGuest) return;
+                if (!user) return;
 
                 try {
-                    // Prevent global access - query ONLY my reports
+                    // Strict Isolation: Only show current user's reports
+                    // Also exclude deleted ones
                     const q = query(
                         collection(db, "issues"),
-                        where("reportedBy", "==", user?.uid)
+                        where("reportedBy", "==", user?.uid),
+                        where("status", "!=", "deleted")
                     );
 
                     const querySnapshot = await getDocs(q);

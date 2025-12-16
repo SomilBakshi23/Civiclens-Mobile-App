@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -74,7 +74,8 @@ export default function MapScreen({ navigation }) {
         useCallback(() => {
             const fetchIssues = async () => {
                 try {
-                    const querySnapshot = await getDocs(collection(db, "issues"));
+                    const q = query(collection(db, "issues"), where("status", "!=", "deleted"));
+                    const querySnapshot = await getDocs(q);
                     const fetchedIssues = [];
                     querySnapshot.forEach((doc) => {
                         fetchedIssues.push({ id: doc.id, ...doc.data() });
