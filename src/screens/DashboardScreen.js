@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,10 +6,19 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { FeedCard } from '../components/IssueCard';
 import { getDashboardStats } from '../services/issueService';
+import { AuthContext } from '../context/AuthContext';
 
-export default function DashboardScreen() {
-
+export default function DashboardScreen({ navigation }) {
+    const { profile } = useContext(AuthContext);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
+
+    // Simple Level Calculation: 1 Level per 200 points
+    const currentScore = profile?.civicScore || 0;
+    const currentLevel = Math.floor(currentScore / 200) + 1;
+
+    // Progress to next level
+    const nextLevelScore = currentLevel * 200;
+    const progress = (currentScore % 200) / 200;
 
     useFocusEffect(
         useCallback(() => {
@@ -27,11 +36,11 @@ export default function DashboardScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
                     <Ionicons name="menu" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Community Pulse</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Ionicons name="notifications" size={24} color="white" />
                     <View style={styles.badge} />
                 </TouchableOpacity>
@@ -46,8 +55,8 @@ export default function DashboardScreen() {
                             <Ionicons name="flash" size={14} color="#3B82F6" />
                             <Text style={styles.scoreLabel}>CIVIC SCORE</Text>
                         </View>
-                        <Text style={styles.scoreValue}>1,250</Text>
-                        <Text style={styles.scoreSub}>Top 5% in District</Text>
+                        <Text style={styles.scoreValue}>{currentScore.toLocaleString()}</Text>
+                        <Text style={styles.scoreSub}>Good Standing</Text>
                     </View>
 
                     <View style={styles.levelCard}>
@@ -55,9 +64,9 @@ export default function DashboardScreen() {
                             <MaterialCommunityIcons name="star-circle" size={14} color="#F97316" />
                             <Text style={styles.scoreLabel}>CONTRIBUTOR</Text>
                         </View>
-                        <Text style={styles.scoreValue}>Lvl 5</Text>
+                        <Text style={styles.scoreValue}>Lvl {currentLevel}</Text>
                         <View style={styles.levelBarBg}>
-                            <View style={[styles.levelBarFill, { width: '60%' }]} />
+                            <View style={[styles.levelBarFill, { width: `${progress * 100}%` }]} />
                         </View>
                     </View>
                 </View>

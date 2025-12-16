@@ -62,12 +62,12 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>12</Text>
+                        <Text style={styles.statValue}>{profile?.reportsCount || 0}</Text>
                         <Text style={styles.statLabel}>Reports</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>Top 5%</Text>
+                        <Text style={styles.statValue}>{profile?.rank || "New"}</Text>
                         <Text style={styles.statLabel}>Rank</Text>
                     </View>
                 </View>

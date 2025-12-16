@@ -13,11 +13,11 @@ export const generateCivicId = () => {
 };
 
 /**
- * Creates the initial user profile in Firestore
+ * Creates the initial user skeleton in Firestore (ONLY used on registration)
  * @param {string} uid - Firebase Auth UID
  * @param {string} email - User email
  */
-export const createUserProfile = async (uid, email) => {
+export const createUserSkeleton = async (uid, email) => {
     try {
         const userRef = doc(db, USERS_COLLECTION, uid);
         const userSnap = await getDoc(userRef);
@@ -31,11 +31,11 @@ export const createUserProfile = async (uid, email) => {
             uid: uid,
             email: email,
             civicId: civicId,
-            name: "",
-            area: "",
-            isProfileComplete: false,
+            name: "", // STRICTLY EMPTY
+            area: "", // STRICTLY EMPTY
+            isProfileComplete: false, // MANDATORY FLAG
             createdAt: serverTimestamp(),
-            civicScore: 100, // Default starting score
+            civicScore: 100,
             role: 'citizen'
         };
 
@@ -43,7 +43,7 @@ export const createUserProfile = async (uid, email) => {
         return { success: true, profile: initialProfile };
 
     } catch (error) {
-        console.error("Error creating user profile:", error);
+        console.error("Error creating user skeleton:", error);
         return { success: false, error: error.message };
     }
 };

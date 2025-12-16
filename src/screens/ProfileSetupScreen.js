@@ -13,9 +13,9 @@ export default function ProfileSetupScreen() {
     const [area, setArea] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Pre-fill if some data already exists
+    // Pre-fill only if editing (Profile Complete). If setup (Incomplete), force empty.
     useEffect(() => {
-        if (profile) {
+        if (profile && profile.isProfileComplete) {
             if (profile.name) setName(profile.name);
             if (profile.area) setArea(profile.area);
         }
@@ -39,6 +39,13 @@ export default function ProfileSetupScreen() {
 
         if (result.success) {
             await refreshProfile(); // Refresh context to trigger App.js routing update
+
+            // Gamification / Welcome Notification
+            Alert.alert(
+                "Welcome, Citizen!",
+                "Your profile is complete. You have been awarded 100 Civic Points to start your journey!",
+                [{ text: "Let's Go!" }]
+            );
         } else {
             Alert.alert("Error", "Failed to save profile. Please try again.");
             setIsSubmitting(false);

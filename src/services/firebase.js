@@ -1,34 +1,42 @@
 // src/services/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import {
+  initializeAuth,
+  getReactNativePersistence,
+  getAuth,
+} from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
-// Your web app's Firebase configuration
+// ⚠️ PLACEHOLDER CONFIG - Replace with actual Firebase Project Config
 const firebaseConfig = {
-    apiKey: "AIzaSyDxuaX5gLVUBZ9OAQGaK7MfEKfAGY67V1o",
-    authDomain: "civiclens-2b167.firebaseapp.com",
-    projectId: "civiclens-2b167",
-    storageBucket: "civiclens-2b167.firebasestorage.app",
-    messagingSenderId: "252555277202",
-    appId: "1:252555277202:web:522b1a8734b1819bdf874b",
-    measurementId: "G-VJBZX9M50S"
+  apiKey: "AIzaSyDxuaX5gLVUBZ9OAQGaK7MfEKfAGY67V1o",
+
+  authDomain: "civiclens-2b167.firebaseapp.com",
+
+  projectId: "civiclens-2b167",
+
+  storageBucket: "civiclens-2b167.firebasestorage.app",
+
+  messagingSenderId: "252555277202",
+
+  appId: "1:252555277202:web:522b1a8734b1819bdf874b",
+
+  measurementId: "G-VJBZX9M50S",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Analytics (Handling potential React Native env issues gracefully)
-// const analytics = getAnalytics(app); // Disabled for React Native / Expo Go to prevent warnings about Cookies/IndexedDB
-
-// Initialize Auth with Persistence
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-
-const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-
-// Initialize Firestore
 const db = getFirestore(app);
+
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+} catch (e) {
+  // If auth is already initialized (e.g. during hot reload), use the existing instance
+  auth = getAuth(app);
+}
 
 export { app, db, auth };

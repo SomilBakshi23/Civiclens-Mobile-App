@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import StatusChip from './StatusChip';
 
-export default function IssueCard({ title, location, status, time, id, votes, comments, image }) {
+export default function IssueCard({ title, location, status, time, id, votes, comments, image, rightAction }) {
     return (
         <View style={styles.card}>
             <View style={styles.header}>
@@ -22,14 +22,14 @@ export default function IssueCard({ title, location, status, time, id, votes, co
                     <Text style={styles.title} numberOfLines={1}>{title}</Text>
                     <Text style={styles.subtitle}>{location} • {id}</Text>
                 </View>
-                <StatusChip status={status} />
             </View>
-
-            {/* Optional: Description or middle content could go here if design requires, 
-          but Image 0 "Recent Activity" is compact. Image 3 has big cards. 
-          This card seems to match Image 0's "Recent Activity" list item style. 
-      */}
+            <View style={{ alignItems: 'flex-end', marginLeft: 8, gap: 8 }}>
+                <StatusChip status={status} />
+                {rightAction && rightAction}
+            </View>
         </View>
+
+
     );
 }
 
