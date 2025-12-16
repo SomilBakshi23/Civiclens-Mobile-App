@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     // Bottom Sheet
     bottomSheet: {
         position: 'absolute',
-        bottom: 0,
+        bottom: 80, // Above Nav Bar
         left: 0,
         right: 0,
         backgroundColor: '#0F1623',

@@ -42,10 +42,7 @@ function BottomTabNavigator() {
       <Tab.Screen name="Community" component={DashboardScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
 
-      {/* Hidden / Functional Screens */}
-      <Tab.Screen name="Report" component={ReportScreen} />
-      <Tab.Screen name="UserDashboard" component={UserDashboardScreen} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
+
     </Tab.Navigator>
   );
 }
@@ -91,6 +88,9 @@ function RootNavigator() {
         <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
 
         {/* Stack Screens (Cover Tabs) */}
+        <Stack.Screen name="Report" component={ReportScreen} />
+        <Stack.Screen name="UserDashboard" component={UserDashboardScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="CivicPreferences" component={CivicPreferencesScreen} />
