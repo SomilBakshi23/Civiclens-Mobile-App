@@ -55,11 +55,11 @@ export default function UserDashboardScreen({ navigation }) {
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>User Dashboard</Text>
-                <View style={{ width: 40 }} /> 
+                <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                
+
                 {/* Profile/Rating Section */}
                 <View style={styles.ratingCard}>
                     <View style={styles.avatarContainer}>
@@ -70,10 +70,10 @@ export default function UserDashboardScreen({ navigation }) {
                             <MaterialCommunityIcons name="trophy" size={14} color="white" />
                         </View>
                     </View>
-                    
+
                     <Text style={styles.userName}>Responsible Citizen</Text>
                     <Text style={styles.userSub}>Making the city better, one report at a time</Text>
-                    
+
                     <View style={styles.starsContainer}>
                         {renderStars(userStats.starRating)}
                     </View>
@@ -103,10 +103,10 @@ export default function UserDashboardScreen({ navigation }) {
 
                 <View style={styles.grid}>
                     {categories.map((cat) => (
-                        <TouchableOpacity 
-                            key={cat.id} 
+                        <TouchableOpacity
+                            key={cat.id}
                             style={[
-                                styles.card, 
+                                styles.card,
                                 selectedCategory === cat.id && styles.activeCard,
                                 { borderColor: selectedCategory === cat.id ? cat.color : colors.border }
                             ]}
@@ -117,7 +117,7 @@ export default function UserDashboardScreen({ navigation }) {
                                 <MaterialCommunityIcons name={cat.icon} size={28} color={cat.color} />
                             </View>
                             <Text style={styles.cardTitle}>{cat.name}</Text>
-                            
+
                             {/* Animated/Conditional Count Display */}
                             {selectedCategory === cat.id ? (
                                 <View style={styles.countBadge}>
@@ -130,6 +130,12 @@ export default function UserDashboardScreen({ navigation }) {
                         </TouchableOpacity>
                     ))}
                 </View>
+
+                {/* Logout Section */}
+                <TouchableOpacity style={styles.logoutButton} onPress={() => alert('Logged Out')}>
+                    <Ionicons name="log-out-outline" size={24} color="#EF4444" style={{ marginRight: 8 }} />
+                    <Text style={styles.logoutText}>Log Out</Text>
+                </TouchableOpacity>
 
             </ScrollView>
         </SafeAreaView>
@@ -168,7 +174,7 @@ const styles = StyleSheet.create({
     content: {
         padding: 20,
     },
-    
+
     // Rating Card
     ratingCard: {
         alignItems: 'center',
@@ -323,5 +329,22 @@ const styles = StyleSheet.create({
     },
     placeholderSpace: {
         height: 20, // visual balance
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 40,
+        marginBottom: 20,
+        paddingVertical: 16,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.2)',
+    },
+    logoutText: {
+        color: '#EF4444',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
