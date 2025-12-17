@@ -1,15 +1,17 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { updateUserProfile } from '../services/userService';
+import { useAlert } from '../context/AlertContext';
 
 export default function EditProfileScreen({ navigation }) {
     const { user, profile, refreshProfile, isGuest } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
 
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
@@ -48,7 +50,7 @@ export default function EditProfileScreen({ navigation }) {
 
     const pickImage = async () => {
         if (isGuest) {
-            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            showAlert("Guest Mode", "Guests cannot change profile photos.");
             return;
         }
 
@@ -65,13 +67,13 @@ export default function EditProfileScreen({ navigation }) {
             }
         } catch (error) {
             console.error("Error picking image:", error);
-            Alert.alert("Error", "Failed to pick image.");
+            showAlert("Error", "Failed to pick image.");
         }
     };
 
     const randomizeAvatar = () => {
         if (isGuest) {
-            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            showAlert("Guest Mode", "Guests cannot change profile photos.");
             return;
         }
 
@@ -82,12 +84,12 @@ export default function EditProfileScreen({ navigation }) {
 
     const handleSave = async () => {
         if (isGuest) {
-            Alert.alert("Guest Mode", "You cannot edit a guest profile.");
+            showAlert("Guest Mode", "You cannot edit a guest profile.");
             return;
         }
 
         if (!fullName.trim()) {
-            Alert.alert("Required", "Full Name cannot be empty.");
+            showAlert("Required", "Full Name cannot be empty.");
             return;
         }
 
@@ -103,11 +105,11 @@ export default function EditProfileScreen({ navigation }) {
 
         if (result.success) {
             await refreshProfile();
-            Alert.alert("Success", "Profile updated successfully.", [
+            showAlert("Success", "Profile updated successfully.", [
                 { text: "OK", onPress: () => navigation.goBack() }
             ]);
         } else {
-            Alert.alert("Error", "Failed to update profile. Please try again.");
+            showAlert("Error", "Failed to update profile. Please try again.");
         }
     };
 

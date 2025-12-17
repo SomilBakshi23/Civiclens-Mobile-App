@@ -1,5 +1,5 @@
 import React, { useState, useContext, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -8,10 +8,12 @@ import { ThemeContext } from '../context/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { useAlert } from '../context/AlertContext';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
     const { theme, isDarkMode } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
     const [stats, setStats] = useState({ total: 0, verified: 0 });
     const [categoryCounts, setCategoryCounts] = useState({});
 
@@ -100,7 +102,7 @@ export default function UserDashboardScreen({ navigation }) {
     };
 
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             "Log Out",
             "Are you sure you want to log out?",
             [

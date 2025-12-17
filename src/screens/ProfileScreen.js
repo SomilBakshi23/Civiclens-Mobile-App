@@ -1,11 +1,12 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { useAlert } from '../context/AlertContext';
 import { updateUserProfile } from '../services/userService';
 
 const { width } = Dimensions.get('window');
@@ -13,10 +14,11 @@ const { width } = Dimensions.get('window');
 export default function ProfileScreen({ navigation }) {
     const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
     const { theme, toggleTheme, isDarkMode } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
     const [updatingImage, setUpdatingImage] = useState(false);
 
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             "Log Out",
             "Are you sure you want to log out?",
             [
@@ -28,7 +30,7 @@ export default function ProfileScreen({ navigation }) {
 
     const pickImage = async () => {
         if (isGuest) {
-            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            showAlert("Guest Mode", "Guests cannot change profile photos.");
             return;
         }
 
@@ -52,15 +54,15 @@ export default function ProfileScreen({ navigation }) {
 
                 if (updateResult.success) {
                     await refreshProfile();
-                    Alert.alert("Success", "Profile photo updated!");
+                    showAlert("Success", "Profile photo updated!");
                 } else {
-                    Alert.alert("Error", "Failed to update profile photo.");
+                    showAlert("Error", "Failed to update profile photo.");
                 }
                 setUpdatingImage(false);
             }
         } catch (error) {
             console.error("Error picking image:", error);
-            Alert.alert("Error", "Failed to pick image.");
+            showAlert("Error", "Failed to pick image.");
             setUpdatingImage(false);
         }
     };
@@ -157,6 +159,7 @@ export default function ProfileScreen({ navigation }) {
                 </TouchableOpacity>
 
             </ScrollView>
+
         </SafeAreaView>
     );
 }
@@ -323,3 +326,4 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
 });
+

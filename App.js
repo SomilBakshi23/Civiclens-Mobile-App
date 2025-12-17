@@ -9,6 +9,7 @@ import { colors } from './src/theme/colors';
 // Auth
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { ThemeProvider, ThemeContext } from './src/context/ThemeContext';
+import { AlertProvider } from './src/context/AlertContext';
 import AuthScreen from './src/screens/AuthScreen';
 import ProfileSetupNavigator from './src/navigation/ProfileSetupNavigator';
 
@@ -113,11 +114,13 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        {showSplash ? (
-          <SplashScreen onFinish={() => setShowSplash(false)} />
-        ) : (
-          <RootNavigator />
-        )}
+        <AlertProvider>
+          {showSplash ? (
+            <SplashScreen onFinish={() => setShowSplash(false)} />
+          ) : (
+            <RootNavigator />
+          )}
+        </AlertProvider>
       </ThemeProvider>
     </AuthProvider>
   );

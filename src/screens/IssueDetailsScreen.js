@@ -1,19 +1,21 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { upvoteIssue, deleteIssue } from '../services/issueService';
+import { useAlert } from '../context/AlertContext';
 import MapView, { Marker } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
 
 export default function IssueDetailsScreen({ route, navigation }) {
     const { issue } = route.params;
-    const { user, isGuest } = useContext(AuthContext);
+    const { isGuest, user } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
     const [likes, setLikes] = useState(issue.upvotes || 0);
 
     const handleUpvote = async () => {
@@ -22,7 +24,7 @@ export default function IssueDetailsScreen({ route, navigation }) {
         if (await upvoteIssue(issue.id, user.uid)) {
             setLikes(prev => prev + 1);
         } else {
-            Alert.alert("Notice", "You have already upvoted this issue.");
+            showAlert("Notice", "You have already upvoted this issue.");
         }
     };
 
@@ -128,7 +130,7 @@ export default function IssueDetailsScreen({ route, navigation }) {
                     {/* Delete Option (Owner Only) */}
                     {user && issue.reportedBy === user.uid && (
                         <TouchableOpacity style={styles.deleteButton} onPress={() => {
-                            Alert.alert(
+                            showAlert(
                                 "Delete Report",
                                 "Are you sure you want to delete this report? This action cannot be undone.",
                                 [
@@ -139,10 +141,10 @@ export default function IssueDetailsScreen({ route, navigation }) {
                                         onPress: async () => {
                                             const success = await deleteIssue(issue.id, user.uid);
                                             if (success) {
-                                                Alert.alert("Deleted", "Your report has been removed and Civic Score updated.");
+                                                showAlert("Deleted", "Your report has been removed and Civic Score updated.");
                                                 navigation.goBack();
                                             } else {
-                                                Alert.alert("Error", "Could not delete report.");
+                                                showAlert("Error", "Could not delete report.");
                                             }
                                         }
                                     }

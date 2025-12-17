@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,11 +9,13 @@ import { db } from '../services/firebase';
 import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore';
 import { upvoteIssue, getDashboardStats } from '../services/issueService';
 import { AuthContext } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { ThemeContext } from '../context/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
     const { isGuest, logout, user, profile } = useContext(AuthContext);
     const { theme, isDarkMode } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
 
     const [issues, setIssues] = useState([]);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
@@ -68,7 +70,7 @@ export default function HomeScreen({ navigation }) {
     const handleUpvote = async (issueId) => {
         // Guest OR Incomplete Profile Block
         if (isGuest || (user && profile && !profile.isProfileComplete)) {
-            Alert.alert(
+            showAlert(
                 isGuest ? "Login Required" : "Profile Incomplete",
                 isGuest
                     ? "Guest users cannot upvote issues. Please login to contribute."
@@ -87,7 +89,7 @@ export default function HomeScreen({ navigation }) {
         if (await upvoteIssue(issueId, user.uid)) {
             // success
         } else {
-            Alert.alert("Notice", "You have already upvoted this issue.");
+            showAlert("Notice", "You have already upvoted this issue.");
         }
 
         loadData();

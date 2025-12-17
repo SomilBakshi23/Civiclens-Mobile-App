@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -9,12 +9,14 @@ import { calculatePriority } from '../utils/priorityEngine';
 import { AuthContext } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { useAlert } from '../context/AlertContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
     const { isGuest, logout, user, profile } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
 
     const [description, setDescription] = useState('');
     const [title, setTitle] = useState('');
@@ -82,30 +84,30 @@ export default function ReportScreen({ navigation }) {
             if (!result.canceled) {
                 const asset = result.assets[0];
                 if (asset.width < 200 || asset.height < 200) {
-                    Alert.alert("Image Error", "The image is too small. Please take a clear photo of the issue.");
+                    showAlert("Image Error", "The image is too small. Please take a clear photo of the issue.");
                     return;
                 }
                 setImage(asset.uri);
             }
         } catch (e) {
-            Alert.alert("Camera Error", "Could not open camera. Please try again or check permissions.");
+            showAlert("Camera Error", "Could not open camera. Please try again or check permissions.");
             console.error(e);
         }
     };
 
     const handleSubmit = async () => {
         if (!description.trim() || !title.trim()) {
-            Alert.alert("Missing Details", "Please provide a title and description.");
+            showAlert("Missing Details", "Please provide a title and description.");
             return;
         }
 
         if (!image) {
-            Alert.alert("Evidence Required", "Please upload a clear image of the issue to allow AI verification.");
+            showAlert("Evidence Required", "Please upload a clear image of the issue to allow AI verification.");
             return;
         }
 
         if (!location) {
-            Alert.alert("Location Missing", "We need your location to report this issue. Please enable permissions.");
+            showAlert("Location Missing", "We need your location to report this issue. Please enable permissions.");
             return;
         }
 
@@ -146,7 +148,7 @@ export default function ReportScreen({ navigation }) {
         setLoading(false);
 
         if (result.success) {
-            Alert.alert("Report Submitted", "Your issue has been reported.\n\n🏆 You earned +10 Civic Score!", [
+            showAlert("Report Submitted", "Your issue has been reported.\n\n🏆 You earned +10 Civic Score!", [
                 {
                     text: "OK", onPress: () => {
                         // Clear Form
@@ -160,7 +162,7 @@ export default function ReportScreen({ navigation }) {
                 }
             ]);
         } else {
-            Alert.alert("Error", "Could not submit report. Please try again.");
+            showAlert("Error", "Could not submit report. Please try again.");
         }
     };
 
