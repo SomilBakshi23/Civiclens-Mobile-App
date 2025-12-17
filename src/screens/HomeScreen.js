@@ -5,11 +5,15 @@ import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
-import { getAllIssues, upvoteIssue, getDashboardStats } from '../services/issueService';
+import { db } from '../services/firebase';
+import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore';
+import { upvoteIssue, getDashboardStats } from '../services/issueService';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
-    const { isGuest, logout, user, profile } = useContext(AuthContext); // Access Auth Context
+    const { isGuest, logout, user, profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
 
     const [issues, setIssues] = useState([]);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
@@ -17,14 +21,35 @@ export default function HomeScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
 
     const loadData = async () => {
-        // Parallel fetch for speed
-        const [fetchedIssues, fetchedStats] = await Promise.all([
-            getAllIssues(),
-            getDashboardStats()
-        ]);
-        setIssues(fetchedIssues);
-        setStats(fetchedStats);
-        setLoading(false);
+        try {
+            // Fetch Dashboard Stats (keep using service or move to firestore later, service is fine for now as it's mock stats)
+            const statsPromise = getDashboardStats();
+
+            // Fetch Real Issues from Firestore
+            const q = query(collection(db, "issues"), where("status", "!=", "deleted"), orderBy("createdAt", "desc"), limit(20));
+            const querySnapshot = await getDocs(q);
+            const fetchedIssues = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                fetchedIssues.push({
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date() // Handle Firestore Timestamp
+                });
+            });
+
+            const [_, fetchedStats] = await Promise.all([
+                Promise.resolve(), // placeholder
+                statsPromise
+            ]);
+
+            setIssues(fetchedIssues);
+            setStats(fetchedStats);
+        } catch (e) {
+            console.error("Home load error:", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const onRefresh = async () => {
@@ -59,28 +84,32 @@ export default function HomeScreen({ navigation }) {
             return;
         }
 
-        await upvoteIssue(issueId);
-        // Optimistic update could go here, or just reload
+        if (await upvoteIssue(issueId, user.uid)) {
+            // success
+        } else {
+            Alert.alert("Notice", "You have already upvoted this issue.");
+        }
+
         loadData();
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
-                    <Feather name="menu" size={24} color="white" />
+                    <Feather name="menu" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
                 <View style={styles.logoContainer}>
                     <View style={styles.logoIcon}>
-                        <Ionicons name="search" size={14} color={colors.primary} />
+                        <Ionicons name="search" size={14} color={theme.primary} />
                     </View>
-                    <Text style={styles.logoText}>CivicLens</Text>
+                    <Text style={[styles.logoText, { color: theme.textPrimary }]}>CivicLens</Text>
                 </View>
                 <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-                    <Ionicons name="notifications" size={24} color="white" />
+                    <Ionicons name="notifications" size={24} color={theme.textPrimary} />
                     <View style={styles.badge} />
                 </TouchableOpacity>
             </View>
@@ -97,7 +126,7 @@ export default function HomeScreen({ navigation }) {
                         <Text style={styles.statusText}>SYSTEM OPERATIONAL</Text>
                     </View>
 
-                    <Text style={styles.heroTitle}>
+                    <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
                         Report. Track.{"\n"}
                         <Text style={styles.highlight}>Fix Your City.</Text>
                     </Text>
@@ -126,86 +155,97 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Live Impact (Dynamic) */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Live Impact</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Live Impact</Text>
                     <Text style={styles.updateTime}>
                         <Ionicons name="time-outline" size={12} color={colors.textSecondary} /> Updated just now
                     </Text>
                 </View>
 
                 <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>REPORTS</Text>
-                        <Text style={styles.statValue}>{stats.totalIssues}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.totalIssues}</Text>
                         <Text style={[styles.statTrend, { color: '#60A5FA' }]}>↗ +12%</Text>
                     </View>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>RESOLVED</Text>
-                        <Text style={styles.statValue}>{stats.resolvedRate}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.resolvedRate}</Text>
                         <Text style={[styles.statTrend, { color: '#4ADE80' }]}>✓ +5%</Text>
                     </View>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>FIX TIME</Text>
-                        <Text style={styles.statValue}>{stats.resTime}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.resTime}</Text>
                         <Text style={[styles.statTrend, { color: '#F59E0B' }]}>↘ -2h</Text>
                     </View>
                 </View>
 
                 {/* Active Issues Map Preview (Static preserved per design) */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Active Issues Map</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Active Issues Map</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Map')}>
                         <Text style={styles.linkText}>Full Map →</Text>
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.mapPreviewCard}>
-                    <View style={[StyleSheet.absoluteFill, styles.mapPattern]} />
+                <TouchableOpacity
+                    style={[styles.mapPreviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                    onPress={() => navigation.navigate('Map')}
+                    activeOpacity={0.9}
+                >
+                    <View style={[StyleSheet.absoluteFill, styles.mapPattern, { backgroundColor: theme.canvas || theme.background }]} />
                     <View style={styles.radarEffect}>
                         <View style={styles.radarCircle} />
                         <Ionicons name="add" size={24} color="white" />
                     </View>
-                    <View style={styles.mapControls}>
-                        <View style={styles.controlIcon}><Ionicons name="home" size={18} color={colors.primary} /></View>
-                        <View style={styles.controlIcon}><Ionicons name="map" size={18} color={colors.textSecondary} /></View>
+                    <View style={[styles.mapControls, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <View style={styles.controlIcon}><Ionicons name="home" size={18} color={theme.primary} /></View>
+                        <View style={styles.controlIcon}><Ionicons name="map" size={18} color={theme.textSecondary} /></View>
                     </View>
-                    <View style={styles.nearbyAlert}>
-                        <View style={styles.alertIcon}>
-                            <MaterialCommunityIcons name="target" size={20} color="white" />
+                    <View style={[styles.nearbyAlert, { backgroundColor: theme.surface + 'EE', borderColor: theme.border }]}>
+                        <View style={[styles.alertIcon, { backgroundColor: theme.surfaceLight, borderColor: theme.border }]}>
+                            <MaterialCommunityIcons name="target" size={20} color={theme.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.alertTitle}>3 Issues near your location</Text>
-                            <Text style={styles.alertSubtitle}>Downtown District • 0.5 miles</Text>
+                            <Text style={[styles.alertTitle, { color: theme.textPrimary }]}>3 Issues near your location</Text>
+                            <Text style={[styles.alertSubtitle, { color: theme.textSecondary }]}>Downtown District • 0.5 miles</Text>
                         </View>
                         <View style={styles.arrowBtn}>
                             <Ionicons name="arrow-forward" size={16} color="white" />
                         </View>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Recent Activity (Dynamic) */}
-                <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12 }]}>Recent Activity</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12, color: theme.textPrimary }]}>Recent Activity</Text>
 
                 {loading ? (
                     <ActivityIndicator size="large" color={colors.primary} />
                 ) : (
                     issues.map((item) => (
                         <View key={item.id} style={{ position: 'relative' }}>
-                            <IssueCard
-                                title={item.title}
-                                location={`${item.priority?.toUpperCase()} • ${item.category}`}
-                                status={item.status}
-                                image={item.imageUrl}
-                                id={item.id}
-                                rightAction={
-                                    <TouchableOpacity
-                                        style={styles.inlineUpvote}
-                                        onPress={() => handleUpvote(item.id)}
-                                    >
-                                        <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
-                                        <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
-                                    </TouchableOpacity>
+                            <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('IssueDetails', {
+                                issue: {
+                                    ...item,
+                                    createdAt: item.createdAt?.toISOString ? item.createdAt.toISOString() : item.createdAt
                                 }
-                            />
+                            })}>
+                                <IssueCard
+                                    title={item.title}
+                                    location={`${item.priority?.toUpperCase()} • ${item.category}`}
+                                    status={item.status}
+                                    image={item.imageUrl}
+                                    id={item.id}
+                                    rightAction={
+                                        <TouchableOpacity
+                                            style={styles.inlineUpvote}
+                                            onPress={() => handleUpvote(item.id)}
+                                        >
+                                            <MaterialCommunityIcons name="thumb-up" size={14} color="white" />
+                                            <Text style={styles.upvoteCount}>{item.upvotes || 0}</Text>
+                                        </TouchableOpacity>
+                                    }
+                                />
+                            </TouchableOpacity>
                         </View>
                     ))
                 )}
@@ -223,6 +263,7 @@ const styles = StyleSheet.create({
     content: {
         padding: 20,
         paddingTop: 10,
+        paddingBottom: 120,
     },
     header: {
         flexDirection: 'row',
@@ -360,7 +401,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: 'white',
     },
     updateTime: {
         fontSize: 12,
@@ -377,11 +417,9 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: colors.surface,
         padding: 12,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.border,
         alignItems: 'flex-start',
     },
     statLabel: {
@@ -393,7 +431,6 @@ const styles = StyleSheet.create({
     },
     statValue: {
         fontSize: 24,
-        color: 'white',
         fontWeight: '700',
         marginBottom: 4,
     },

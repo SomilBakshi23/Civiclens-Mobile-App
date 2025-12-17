@@ -1,255 +1,231 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'; // Using default for Expo Go
+
+import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import MapView, { Marker, Callout, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { ThemeContext } from '../context/ThemeContext';
+import { AuthContext } from '../context/AuthContext';
+import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
+import { db } from '../services/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
-// Custom Map Style for Dark Mode
+// Dark Mode Map Style
 const mapDarkStyle = [
-    {
-        "elementType": "geometry",
-        "stylers": [{ "color": "#212121" }]
-    },
-    {
-        "elementType": "labels.icon",
-        "stylers": [{ "visibility": "off" }]
-    },
-    {
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#757575" }]
-    },
-    {
-        "elementType": "labels.text.stroke",
-        "stylers": [{ "color": "#212121" }]
-    },
-    {
-        "featureType": "administrative",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#757575" }]
-    },
-    {
-        "featureType": "administrative.country",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#9e9e9e" }]
-    },
-    {
-        "featureType": "administrative.land_parcel",
-        "stylers": [{ "visibility": "off" }]
-    },
-    {
-        "featureType": "administrative.locality",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#bdbdbd" }]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#757575" }]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#181818" }]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#616161" }]
-    },
-    {
-        "featureType": "road",
-        "elementType": "geometry.fill",
-        "stylers": [{ "color": "#2c2c2c" }]
-    },
-    {
-        "featureType": "road",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#8a8a8a" }]
-    },
-    {
-        "featureType": "road.arterial",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#373737" }]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#3c3c3c" }]
-    },
-    {
-        "featureType": "road.highway.controlled_access",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#4e4e4e" }]
-    },
-    {
-        "featureType": "road.local",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#616161" }]
-    },
-    {
-        "featureType": "transit",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#757575" }]
-    },
-    {
-        "featureType": "water",
-        "elementType": "geometry",
-        "stylers": [{ "color": "#000000" }]
-    },
-    {
-        "featureType": "water",
-        "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#3d3d3d" }]
-    }
+    { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+    { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+    { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
+    { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
+    { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+    { "featureType": "administrative.land_parcel", "stylers": [{ "visibility": "off" }] },
+    { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#bdbdbd" }] },
+    { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+    { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
+    { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+    { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
+    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#8a8a8a" }] },
+    { "featureType": "road.arterial", "elementType": "geometry", "stylers": [{ "color": "#373737" }] },
+    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#3c3c3c" }] },
+    { "featureType": "road.highway.controlled_access", "elementType": "geometry", "stylers": [{ "color": "#4e4e4e" }] },
+    { "featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+    { "featureType": "transit", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] },
+    { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#3d3d3d" }] }
 ];
 
-export default function MapScreen() {
+export default function MapScreen({ navigation }) {
+    const { profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
+    const [location, setLocation] = useState(null);
+    const [errorMsg, setErrorMsg] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [issues, setIssues] = useState([]);
+
+    // Get color based on priority
+    const getMarkerColor = (p) => {
+        switch (p) {
+            case 'high': return '#EF4444'; // Red
+            case 'medium': return '#F59E0B'; // Orange
+            case 'low': return '#10B981'; // Green
+            default: return '#3B82F6';
+        }
+    };
+
+    // Initial Location Setup
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setErrorMsg('Permission to access location was denied. Cannot show nearby issues.');
+                setLoading(false);
+                return;
+            }
+
+            let loc = await Location.getCurrentPositionAsync({});
+            setLocation(loc);
+            setLoading(false);
+        })();
+    }, []);
+
+    // Refresh issues directly from Firestore whenever screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            const fetchIssues = async () => {
+                try {
+                    const q = query(collection(db, "issues"), where("status", "!=", "deleted"));
+                    const querySnapshot = await getDocs(q);
+                    const fetchedIssues = [];
+                    querySnapshot.forEach((doc) => {
+                        fetchedIssues.push({ id: doc.id, ...doc.data() });
+                    });
+                    setIssues(fetchedIssues);
+                } catch (e) {
+                    console.error("Error fetching map issues: ", e);
+                }
+            };
+            fetchIssues();
+        }, [])
+    );
+
+    const handleMarkerPress = (issue) => {
+        Alert.alert(
+            issue.title,
+            `Priority: ${issue.priority ? issue.priority.toUpperCase() : 'NORMAL'}\nStatus: ${issue.status.toUpperCase()}\n\n${issue.description || ''}`,
+            [{ text: "OK" }]
+        );
+    };
+
+    if (errorMsg) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }]}>
+                <Ionicons name="location-outline" size={64} color={theme.textSecondary} />
+                <Text style={{ color: theme.textPrimary, marginTop: 16, fontSize: 16, textAlign: 'center', paddingHorizontal: 40 }}>
+                    {errorMsg}
+                </Text>
+            </View>
+        );
+    }
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <MapView
                 style={styles.map}
-                customMapStyle={mapDarkStyle}
+                customMapStyle={isDarkMode ? mapDarkStyle : []}
                 provider={PROVIDER_DEFAULT}
-                initialRegion={{
-                    latitude: 37.78825,
-                    longitude: -122.4324,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                }}
+                showsUserLocation={true}
+                followsUserLocation={true}
+                region={location ? {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                } : undefined}
             >
-                {/* Markers */}
-                <Marker
-                    coordinate={{ latitude: 37.78825, longitude: -122.4324 }}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                >
-                    <View style={[styles.marker, { backgroundColor: '#3B82F6' }]}>
-                        <Ionicons name="checkmark" size={14} color="white" />
-                    </View>
-                </Marker>
-
-                <Marker
-                    coordinate={{ latitude: 37.79425, longitude: -122.4124 }}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                >
-                    <View style={[styles.marker, { backgroundColor: '#F59E0B' }]}>
-                        <MaterialCommunityIcons name="cog" size={12} color="white" />
-                    </View>
-                </Marker>
-
-                <Marker
-                    coordinate={{ latitude: 37.77425, longitude: -122.4224 }}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                >
-                    <View style={[styles.marker, { backgroundColor: '#EF4444' }]}>
-                        <Text style={styles.markerText}>!</Text>
-                    </View>
-                </Marker>
+                {/* Render Issues from Service */}
+                {issues.map((issue) => (
+                    <Marker
+                        key={issue.id}
+                        coordinate={{
+                            latitude: issue.latitude || 37.78825,
+                            longitude: issue.longitude || -122.4324
+                        }}
+                        anchor={{ x: 0.5, y: 0.5 }}
+                    >
+                        <View style={[styles.marker, { backgroundColor: getMarkerColor(issue.priority) }]}>
+                            {issue.priority === 'high' ? (
+                                <Text style={styles.markerText}>!</Text>
+                            ) : (
+                                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white' }} />
+                            )}
+                        </View>
+                        <Callout tooltip>
+                            <View style={styles.calloutContainer}>
+                                <Text style={styles.calloutTitle}>{issue.title}</Text>
+                                <Text style={[styles.calloutStatus, { color: getMarkerColor(issue.priority) }]}>
+                                    AI PRIORITY: {issue.priority ? issue.priority.toUpperCase() : 'MEDIUM'}
+                                </Text>
+                                {issue.priorityReason ? (
+                                    <Text style={styles.reasonText}>Reason: {issue.priorityReason}</Text>
+                                ) : null}
+                            </View>
+                        </Callout>
+                    </Marker>
+                ))}
             </MapView>
 
             {/* Top Overlays */}
             <View style={styles.topContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.menuBtn}>
-                        <Ionicons name="menu" size={24} color="#64748B" />
+                    <TouchableOpacity style={[styles.menuBtn, { backgroundColor: theme.surface }]} onPress={() => navigation.navigate('UserDashboard')}>
+                        <Ionicons name="menu" size={24} color={theme.icon} />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.appTitle}>CivicLens</Text>
-                        <Text style={styles.subtitle}>PUBLIC DASHBOARD</Text>
+                        <Text style={[styles.appTitle, { color: theme.textPrimary }]}>CivicLens</Text>
+                        <Text style={[styles.subtitle, { color: theme.primary }]}>LIVE MAP</Text>
                     </View>
-                    <Image source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }} style={styles.avatar} />
-                </View>
-
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={20} color="#64748B" style={{ marginRight: 8 }} />
-                    <TextInput
-                        placeholder="Search location, issue ID, or department"
-                        placeholderTextColor="#64748B"
-                        style={styles.searchInput}
-                    />
-                    <TouchableOpacity style={styles.micBtn}>
-                        <Ionicons name="mic" size={18} color="#3B82F6" />
+                    <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                        <Image
+                            source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }}
+                            style={[styles.avatar, { borderColor: theme.surface }]}
+                        />
                     </TouchableOpacity>
                 </View>
 
                 {/* Filter Chips */}
                 <View style={styles.chipsRow}>
-                    <TouchableOpacity style={styles.activeChip}>
-                        <Text style={styles.activeChipText}>All Issues</Text>
+                    <TouchableOpacity style={[styles.activeChip, { backgroundColor: theme.textPrimary }]}>
+                        <Text style={[styles.activeChipText, { color: theme.background }]}>All</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chip}>
+                    <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={[styles.dot, { backgroundColor: '#F59E0B' }]} />
-                        <Text style={styles.chipText}>Urgent</Text>
+                        <Text style={[styles.chipText, { color: theme.textSecondary }]}>Urgent</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chip}>
-                        <MaterialCommunityIcons name="road-variant" size={14} color="#64748B" style={{ marginRight: 4 }} />
-                        <Text style={styles.chipText}>Roads</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.chip}>
-                        <Ionicons name="water" size={14} color="#64748B" style={{ marginRight: 4 }} />
-                        <Text style={styles.chipText}>Water</Text>
+                    <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <MaterialCommunityIcons name="road-variant" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.chipText, { color: theme.textSecondary }]}>Roads</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
             {/* Bottom Sheet Card */}
-            <View style={styles.bottomSheet}>
-                <View style={styles.handle} />
-
+            <View style={[styles.bottomSheet, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+                <View style={[styles.handle, { backgroundColor: theme.border }]} />
                 <View style={styles.sheetHeader}>
                     <View>
                         <View style={styles.sheetMetaRow}>
-                            <View style={styles.statusBadge}>
-                                <Text style={styles.statusText}>IN PROGRESS</Text>
+                            <View style={[styles.statusBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+                                <Text style={[styles.statusText, { color: theme.primary }]}>LIVE DATA</Text>
                             </View>
-                            <Text style={styles.issueId}>ID: #4092-A</Text>
+                            <Text style={[styles.issueId, { color: theme.textSecondary }]}>{issues.length} Issues Nearby</Text>
                         </View>
-                        <Text style={styles.sheetTitle}>Pothole on 5th Ave</Text>
+                        <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>{location ? "You are here" : "Locating..."}</Text>
                         <View style={styles.locationRow}>
-                            <Ionicons name="location-sharp" size={14} color="#64748B" />
-                            <Text style={styles.locationText}>Near Central Park South Entrance</Text>
+                            <Ionicons name="location-sharp" size={14} color={theme.textSecondary} />
+                            <Text style={[styles.locationText, { color: theme.textSecondary }]}>
+                                {location ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}` : "Waiting for GPS..."}
+                            </Text>
                         </View>
                     </View>
-                    <TouchableOpacity style={styles.shareBtn}>
-                        <Ionicons name="share-social-outline" size={20} color="white" />
+                    <TouchableOpacity
+                        style={[styles.sheetActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                        onPress={() => navigation.navigate('Report', { location })}
+                    >
+                        <Ionicons name="add" size={24} color={theme.textPrimary} />
                     </TouchableOpacity>
                 </View>
 
-                {/* Stats Metrics */}
-                <View style={styles.metricsRow}>
-                    <View style={styles.metricCard}>
-                        <View style={styles.metricHeader}>
-                            <Text style={styles.metricLabel}>TARGET RESOLUTION</Text>
-                            <Ionicons name="time" size={14} color="#334155" />
-                        </View>
-                        <Text style={[styles.metricValue, { color: '#3B82F6' }]}>14h 20m</Text>
-                        <Text style={styles.metricSub}>Within SLA limits</Text>
-                        <View style={styles.progressBg}><View style={[styles.progressFill, { width: '70%', backgroundColor: '#3B82F6' }]} /></View>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                        <View style={styles.metricHeader}>
-                            <Text style={styles.metricLabel}>DEPT. EFFICIENCY</Text>
-                            <Ionicons name="stats-chart" size={14} color="#334155" />
-                        </View>
-                        <Text style={styles.metricValue}>94% <Text style={{ fontSize: 12, color: '#3B82F6' }}>↗</Text></Text>
-                        <Text style={styles.metricSub}>Public Works Dept.</Text>
-                        <View style={styles.progressBg}><View style={[styles.progressFill, { width: '90%', backgroundColor: '#3B82F6' }]} /></View>
-                    </View>
-                </View>
-
-                {/* Activity Timeline (Partial) */}
-                <Text style={styles.timelineTitle}>Activity Timeline</Text>
-                <View style={styles.timelineItem}>
-                    <View style={styles.timelineDot} />
-                    <View style={styles.timelineContent}>
-                        <Text style={styles.timelineTime}>TODAY, 10:42 AM</Text>
-                        <Text style={styles.timelineMain}>Repair Crew Dispatched</Text>
-                        <Text style={styles.timelineSub}>Crew #42 assigned by Dispatch AI</Text>
-                    </View>
-                </View>
+                {/* Quick Action Button for Empty Space */}
+                <TouchableOpacity
+                    style={styles.primaryActionBtn}
+                    onPress={() => navigation.navigate('Report', { location })}
+                >
+                    <Text style={styles.primaryActionText}>Report Issue Here</Text>
+                    <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -266,13 +242,13 @@ const styles = StyleSheet.create({
 
     // Custom Marker Styles
     marker: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderWidth: 2,
+        borderColor: 'white',
         shadowColor: '#000',
         shadowOpacity: 0.5,
         elevation: 5,
@@ -280,6 +256,35 @@ const styles = StyleSheet.create({
     markerText: {
         color: 'white',
         fontWeight: 'bold',
+        fontSize: 16
+    },
+    calloutContainer: {
+        backgroundColor: 'white',
+        padding: 8,
+        borderRadius: 8,
+        width: 150,
+        alignItems: 'center',
+        shadowColor: 'black',
+        shadowOpacity: 0.2,
+        elevation: 5,
+        marginBottom: 4,
+    },
+    calloutTitle: {
+        fontWeight: 'bold',
+        fontSize: 14,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    calloutStatus: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    reasonText: {
+        fontSize: 10,
+        color: '#64748B',
+        textAlign: 'center',
+        fontStyle: 'italic'
     },
 
     // Top Container
@@ -288,10 +293,10 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        paddingTop: 50,
+        paddingTop: 50, // Safe Area
         paddingHorizontal: 16,
         zIndex: 10,
-        backgroundColor: 'rgba(5, 10, 20, 0.65)', // Faded background behind header elements
+        backgroundColor: 'transparent',
         paddingBottom: 20,
     },
     header: {
@@ -315,12 +320,17 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '700',
         fontSize: 16,
+        shadowColor: 'black',
+        shadowRadius: 2,
+        shadowOpacity: 0.5
     },
     subtitle: {
         color: '#3B82F6',
         fontSize: 10,
         fontWeight: '700',
         letterSpacing: 0.5,
+        textShadowColor: 'black',
+        textShadowRadius: 2,
     },
     avatar: {
         width: 40,
@@ -328,23 +338,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 2,
         borderColor: '#1E293B',
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1E293B',
-        borderRadius: 24,
-        paddingHorizontal: 16,
-        height: 48,
-        marginBottom: 16,
-    },
-    searchInput: {
-        flex: 1,
-        color: 'white',
-        fontSize: 14,
-    },
-    micBtn: {
-        padding: 4,
     },
     chipsRow: {
         flexDirection: 'row',
@@ -383,7 +376,7 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
 
-    // Bottom Sheet logic (Simulated as static view for now)
+    // Bottom Sheet
     bottomSheet: {
         position: 'absolute',
         bottom: 0,
@@ -394,7 +387,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 32,
         padding: 24,
         paddingTop: 12,
-        minHeight: 380,
+        paddingBottom: 110, // Add padding to clear the floating tab bar
+        minHeight: 250,
     },
     handle: {
         width: 40,
@@ -408,7 +402,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 24,
     },
     sheetMetaRow: {
         flexDirection: 'row',
@@ -416,16 +409,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     statusBadge: {
-        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 6,
         marginRight: 8,
         borderWidth: 1,
-        borderColor: 'rgba(245, 158, 11, 0.3)',
+        borderColor: 'rgba(59, 130, 246, 0.3)',
     },
     statusText: {
-        color: '#F59E0B',
+        color: '#3B82F6',
         fontSize: 10,
         fontWeight: '700',
     },
@@ -448,101 +441,28 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginLeft: 4,
     },
-    shareBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    sheetActionBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: '#1E293B',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#334155',
+        borderColor: '#334155'
     },
-
-    metricsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-    },
-    metricCard: {
-        flex: 1,
-        backgroundColor: '#151E2E',
-        padding: 16,
+    primaryActionBtn: {
+        marginTop: 20,
+        backgroundColor: colors.primary,
+        paddingVertical: 16,
         borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#1E293B',
-    },
-    metricHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    metricLabel: {
-        color: '#64748B',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    metricValue: {
+    primaryActionText: {
         color: 'white',
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    metricSub: {
-        color: '#64748B',
-        fontSize: 11,
-        marginBottom: 8,
-    },
-    progressBg: {
-        height: 4,
-        backgroundColor: '#1E293B',
-        borderRadius: 2,
-    },
-    progressFill: {
-        height: '100%',
-        borderRadius: 2,
-    },
-
-    timelineTitle: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 16,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        borderLeftWidth: 1,
-        borderLeftColor: '#334155',
-        paddingLeft: 16,
-        marginLeft: 6,
-    },
-    timelineDot: {
-        position: 'absolute',
-        left: -5,
-        top: 0,
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        backgroundColor: '#F97316',
-        borderWidth: 2,
-        borderColor: '#0F1623',
-    },
-    timelineContent: {
-        marginTop: -4,
-    },
-    timelineTime: {
-        color: '#F97316',
-        fontSize: 10,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    timelineMain: {
-        color: 'white',
-        fontSize: 14,
-        marginBottom: 2,
-    },
-    timelineSub: {
-        color: '#64748B',
-        fontSize: 12,
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });

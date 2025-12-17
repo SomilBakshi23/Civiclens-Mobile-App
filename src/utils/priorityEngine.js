@@ -1,49 +1,69 @@
-// src/utils/priorityEngine.js
-
 /**
  * AI-Assisted Priority Logic (Rule-based for Hackathon Demo)
  * 
- * In a real production environment, this would call a TensorFlow Lite model
- * or a server-side ML API to analyze text sentiment + image severity.
+ * Rules:
+ * 1. Category Severity: High risk categories get higher base score.
+ * 2. Community Signal: Upvotes increase score significantly.
+ * 3. Evidence: Image presence boosts score meant for validation.
  * 
- * Logic Rules:
- * 1. Urgency keywords in category = HIGH
- * 2. High upvote count (> 50) = HIGH
- * 3. Default = MEDIUM (for review)
+ * Logic:
+ * Score = Base Category Score + (Upvotes * Multiplier) + Image Bonus
+ * 
+ * Thresholds:
+ * Score >= 80 -> HIGH
+ * Score >= 40 -> MEDIUM
+ * Score < 40  -> LOW
  */
 
-export function calculatePriority(category, upvotes = 0) {
-    const highPriorityCategories = ['danger', 'hazard', 'urgent', 'electrical', 'fire', 'flood'];
-    const lowPriorityCategories = ['graffiti', 'suggestion', 'litter', 'noise'];
+export function calculatePriority({ category, upvotes = 0, imageUri, title = '' }) {
+    let score = 0;
+    let reasons = [];
 
-    // Normalize inputs
+    // Clean inputs
     const cat = category ? category.toLowerCase() : '';
+    const cleanTitle = title.toLowerCase();
 
-    // Rule 1: Safety/Urgency keywords
-    if (highPriorityCategories.some(k => cat.includes(k))) {
-        return 'high';
+    // 1. BASE CATEGORY SCORE
+    // High Severity
+    if (['danger', 'hazard', 'urgent', 'electrical', 'fire', 'flood', 'accident', 'traffic'].some(k => cat.includes(k) || cleanTitle.includes(k))) {
+        score += 60;
+        reasons.push('high-risk category');
+    }
+    // Medium Severity
+    else if (['pothole', 'water', 'road', 'infrastructure', 'broken'].some(k => cat.includes(k) || cleanTitle.includes(k))) {
+        score += 40;
+        reasons.push('infrastructure issue');
+    }
+    // Low Severity
+    else {
+        score += 10;
+        reasons.push('civil report');
     }
 
-    // Rule 2: Crowd validation (Upvotes)
-    if (upvotes > 50) {
-        return 'high';
+    // 2. COMMUNITY VALIDATION (Upvotes)
+    const voteScore = upvotes * 5; // Each vote is worth 5 points
+    if (voteScore > 0) {
+        score += voteScore;
+        reasons.push(`${upvotes} community validations`);
     }
 
-    // Rule 3: Low priority types
-    if (lowPriorityCategories.some(k => cat.includes(k))) {
-        return 'low';
+    // 3. EVIDENCE FACTOR (Image)
+    if (imageUri) {
+        score += 20;
+        reasons.push('visual evidence provided');
+    } else {
+        // Penalty for no image? Or just no bonus.
+        // Prompt says "Image present -> small boost".
     }
 
-    // Default Fallback
-    return 'medium';
-}
+    // 4. DETERMINE LEVEL
+    let level = 'low';
+    if (score >= 80) level = 'high';
+    else if (score >= 40) level = 'medium';
 
-export function aiRefinePriority(title, description) {
-    // Simulated NLP analysis
-    const text = (title + " " + description).toLowerCase();
-
-    if (text.includes('accident') || text.includes('hurt') || text.includes('blocked')) {
-        return 'high';
-    }
-    return null; // No override
+    return {
+        priority: level,
+        score: score,
+        reason: reasons.join(', ')
+    };
 }

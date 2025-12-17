@@ -1,30 +1,92 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import React, { useState, useContext, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
+import { useFocusEffect } from '@react-navigation/native';
+import { db } from '../services/firebase';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
+    const [stats, setStats] = useState({ total: 0, verified: 0 });
+    const [categoryCounts, setCategoryCounts] = useState({});
 
-    // Mock user data (keep for stats visuals)
+    // Load Real Data Filtered by User
+    useFocusEffect(
+        useCallback(() => {
+            const loadData = async () => {
+                if (!user) return;
+
+                try {
+                    // 1. Fetch Latest Profile (for Civic Score)
+                    const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
+                    if (!userDoc.empty) {
+                        // We could update context, but for now just local state or rely on stats re-render
+                        // Actually, we should force a profile refresh if we want 'profile.civicScore' to update
+                        // But since 'profile' comes from AuthContext, let's fetch it manually here for display
+                        const freshProfile = userDoc.docs[0].data();
+                        setCurrentProfile(freshProfile);
+                    }
+
+                    // 2. Fetch Issues
+                    // Strict Isolation: Only show current user's reports
+                    // Also exclude deleted ones
+                    const q = query(
+                        collection(db, "issues"),
+                        where("reportedBy", "==", user?.uid),
+                        where("status", "!=", "deleted")
+                    );
+
+                    const querySnapshot = await getDocs(q);
+                    const issues = [];
+                    querySnapshot.forEach((doc) => {
+                        issues.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    setStats({
+                        total: issues.length,
+                        verified: issues.filter(i => i.status === 'resolved' || i.verified).length
+                    });
+
+                    // Tally Categories
+                    const newCounts = {};
+                    issues.forEach(i => {
+                        const cat = i.category || 'Other';
+                        newCounts[cat] = (newCounts[cat] || 0) + 1;
+                    });
+                    setCategoryCounts(newCounts);
+
+                } catch (e) {
+                    console.error("Error fetching user dashboard data:", e);
+                }
+            };
+            loadData();
+        }, [user, isGuest])
+    );
+
+    // Use local profile if available, else context profile
+    const [currentProfile, setCurrentProfile] = useState(profile);
+
     const userStats = {
-        starRating: profile?.civicScore ? (profile.civicScore / 20).toFixed(1) : "5.0", // 100 points = 5.0
-        totalReports: profile?.reportsCount || 0,
-        verifiedReports: profile?.verifiedCount || 0,
-        ranking: profile?.rank || 'New Citizen'
+        starRating: currentProfile?.civicScore ? (currentProfile.civicScore / 20).toFixed(1) : "5.0",
+        totalReports: stats.total, // REAL DATA
+        verifiedReports: stats.verified, // REAL DATA
+        ranking: currentProfile?.rank || 'New Citizen'
     };
 
     // Category data with report counts
     const categories = [
-        { id: 1, name: 'Pothole', icon: 'alert-octagon', count: 0, color: '#EAB308' },
-        { id: 2, name: 'Street Light', icon: 'lightbulb-on', count: 0, color: '#F97316' },
-        { id: 3, name: 'Garbage', icon: 'delete', count: 0, color: '#EF4444' },
-        { id: 4, name: 'Water Leak', icon: 'water', count: 0, color: '#3B82F6' },
-        { id: 5, name: 'Traffic', icon: 'car', count: 0, color: '#A855F7' },
-        { id: 6, name: 'Vandalism', icon: 'wall', count: 0, color: '#64748B' },
-        { id: 7, name: 'Other', icon: 'dots-horizontal', count: 0, color: '#10B981' },
+        { id: 1, name: 'Infrastructure', icon: 'alert-octagon', key: 'Infrastructure', color: '#EAB308' },
+        { id: 2, name: 'Electrical', icon: 'lightbulb-on', key: 'Electrical', color: '#F97316' },
+        { id: 3, name: 'Sanitation', icon: 'delete', key: 'Sanitation', color: '#EF4444' },
+        { id: 4, name: 'Water', icon: 'water', key: 'Water', color: '#3B82F6' },
+        { id: 5, name: 'Traffic', icon: 'car', key: 'Traffic', color: '#A855F7' },
+        { id: 6, name: 'Vandalism', icon: 'wall', key: 'Vandalism', color: '#64748B' },
+        { id: 7, name: 'Other', icon: 'dots-horizontal', key: 'Other', color: '#10B981' },
     ];
 
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -60,93 +122,98 @@ export default function UserDashboardScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>User Dashboard</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>User Dashboard</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
                 {/* Profile/Rating Section */}
-                <View style={styles.ratingCard}>
+                <View style={[styles.ratingCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <View style={styles.avatarContainer}>
-                        <View style={styles.avatar}>
-                            <Ionicons name="person" size={40} color="white" />
+                        <View style={[styles.avatar, { borderColor: theme.surfaceLight }]}>
+                            {profile?.photoURL ? (
+                                <Image source={{ uri: profile.photoURL }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
+                            ) : (
+                                <Ionicons name="person" size={40} color="white" />
+                            )}
                         </View>
                         {!isGuest && (
-                            <View style={styles.rankBadge}>
+                            <View style={[styles.rankBadge, { borderColor: theme.surface }]}>
                                 <MaterialCommunityIcons name="trophy" size={14} color="white" />
                             </View>
                         )}
                     </View>
 
-                    <Text style={styles.userName}>
+                    <Text style={[styles.userName, { color: theme.textPrimary }]}>
                         {isGuest ? "Responsible Citizen" : (profile?.name || "Responsible Citizen")}
                     </Text>
-                    <Text style={styles.userSub}>Making the city better, one report at a time</Text>
+                    <Text style={[styles.userSub, { color: theme.textSecondary }]}>Making the city better, one report at a time</Text>
 
                     <View style={styles.starsContainer}>
                         {renderStars(userStats.starRating)}
                     </View>
                     <Text style={styles.ratingText}>{userStats.starRating} / 5.0 Rating</Text>
 
-                    <View style={styles.statsRow}>
+                    <View style={[styles.statsRow, { backgroundColor: theme.background }]}>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.totalReports}</Text>
-                            <Text style={styles.statLabel}>Reports</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.totalReports}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Reports</Text>
                         </View>
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: theme.border }]} />
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.verifiedReports}</Text>
-                            <Text style={styles.statLabel}>Verified</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.verifiedReports}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Verified</Text>
                         </View>
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: theme.border }]} />
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.ranking}</Text>
-                            <Text style={styles.statLabel}>Ranking</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.ranking}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Ranking</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Categories Section */}
-                <Text style={styles.sectionTitle}>Report History by Category</Text>
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Report History by Category</Text>
                 <Text style={styles.sectionSub}>Tap a category to see your impact</Text>
 
                 <View style={styles.grid}>
-                    {categories.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.id}
-                            style={[
-                                styles.card,
-                                selectedCategory === cat.id && styles.activeCard,
-                                { borderColor: selectedCategory === cat.id ? cat.color : colors.border }
-                            ]}
-                            onPress={() => toggleCategory(cat.id)}
-                            activeOpacity={0.8}
-                        >
-                            <View style={[styles.iconBox, { backgroundColor: `${cat.color}20` }]}>
-                                <MaterialCommunityIcons name={cat.icon} size={28} color={cat.color} />
-                            </View>
-                            <Text style={styles.cardTitle}>{cat.name}</Text>
+                    {categories.map((cat) => {
+                        const count = categoryCounts[cat.key] || categoryCounts[cat.name] || 0;
+                        return (
+                            <TouchableOpacity
+                                key={cat.id}
+                                style={[
+                                    styles.card,
+                                    selectedCategory === cat.id && styles.activeCard,
+                                    {
+                                        backgroundColor: selectedCategory === cat.id ? (isDarkMode ? '#1E293B' : '#E2E8F0') : theme.surface,
+                                        borderColor: selectedCategory === cat.id ? cat.color : theme.border
+                                    }
+                                ]}
+                                onPress={() => toggleCategory(cat.id)}
+                                activeOpacity={0.8}
+                            >
+                                <View style={[styles.iconBox, { backgroundColor: `${cat.color}20` }]}>
+                                    <MaterialCommunityIcons name={cat.icon} size={28} color={cat.color} />
+                                </View>
+                                <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{cat.name}</Text>
 
-                            {/* Animated/Conditional Count Display */}
-                            {selectedCategory === cat.id ? (
                                 <View style={styles.countBadge}>
-                                    <Text style={styles.countText}>{cat.count}</Text>
+                                    <Text style={[styles.countText, { color: theme.textPrimary }]}>{count}</Text>
                                     <Text style={styles.countLabel}>Reports</Text>
                                 </View>
-                            ) : (
-                                <View style={styles.placeholderSpace} />
-                            )}
-                        </TouchableOpacity>
-                    ))}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
                 {/* Logout Section */}
@@ -345,9 +412,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.textSecondary,
     },
-    placeholderSpace: {
-        height: 20, // visual balance
-    },
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -364,5 +428,6 @@ const styles = StyleSheet.create({
         color: '#EF4444',
         fontSize: 16,
         fontWeight: '600',
+        marginLeft: 8,
     },
 });

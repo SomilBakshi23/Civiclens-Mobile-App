@@ -1,3 +1,8 @@
+// !!! WARNING: THIS FILE IS UNUSED !!!
+// The active application entry point is 'Civiclens-Mobile-App/App.js' (root directory).
+// Changes made here will NOT affect the app.
+// Please open the App.js in the root folder.
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -10,6 +15,7 @@ import HomeScreen from './screens/HomeScreen';
 import ReportScreen from './screens/ReportScreen';
 import MapScreen from './screens/MapScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import ProfileScreen from './screens/ProfileScreen'; // Import ProfileScreen
 import CustomTabBar from './components/CustomTabBar';
 
 const Tab = createBottomTabNavigator();
@@ -25,10 +31,10 @@ export default function App() {
                 }}
             >
                 <Tab.Screen name="Home" component={HomeScreen} />
-                <Tab.Screen name="Pulse" component={DashboardScreen} />
-                <Tab.Screen name="Report" component={ReportScreen} />
                 <Tab.Screen name="Map" component={MapScreen} />
-                <Tab.Screen name="Profile" component={View} />
+                <Tab.Screen name="Community" component={DashboardScreen} />
+                <Tab.Screen name="Profile" component={ProfileScreen} />
+                <Tab.Screen name="Report" component={ReportScreen} />
             </Tab.Navigator>
         </NavigationContainer>
     );
