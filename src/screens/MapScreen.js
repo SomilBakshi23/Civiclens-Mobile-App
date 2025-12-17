@@ -1,12 +1,12 @@
-
 import React, { useContext, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image } from 'react-native';
 import MapView, { Marker, Callout, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import * as Location from 'expo-location';
+import { useAlert } from '../context/AlertContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -40,6 +40,7 @@ const mapDarkStyle = [
 export default function MapScreen({ navigation }) {
     const { profile } = useContext(AuthContext);
     const { theme, isDarkMode } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
     const [location, setLocation] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -92,7 +93,7 @@ export default function MapScreen({ navigation }) {
     );
 
     const handleMarkerPress = (issue) => {
-        Alert.alert(
+        showAlert(
             issue.title,
             `Priority: ${issue.priority ? issue.priority.toUpperCase() : 'NORMAL'}\nStatus: ${issue.status.toUpperCase()}\n\n${issue.description || ''}`,
             [{ text: "OK" }]
