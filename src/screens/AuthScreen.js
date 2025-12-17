@@ -1,10 +1,11 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { useAlert } from '../context/AlertContext';
 
 export default function AuthScreen() {
     const [isLogin, setIsLogin] = useState(true);
@@ -14,10 +15,11 @@ export default function AuthScreen() {
 
     const { login, register, continueAsGuest } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
 
     const handleSubmit = async () => {
         if (!email || !password) {
-            Alert.alert("Missing Fields", "Please enter both email and password.");
+            showAlert("Missing Fields", "Please enter both email and password.");
             return;
         }
 
@@ -37,7 +39,7 @@ export default function AuthScreen() {
         setIsSubmitting(false);
 
         if (result && !result.success) {
-            Alert.alert("Authentication Error", result.error);
+            showAlert("Authentication Error", result.error);
         }
     };
 
