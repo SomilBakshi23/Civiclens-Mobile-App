@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,10 +7,12 @@ import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { updateUserProfile } from '../services/userService';
+import { useAlert } from '../context/AlertContext';
 
 export default function ProfileSetupScreen() {
     const { user, profile, refreshProfile } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
 
     const [name, setName] = useState('');
     const [area, setArea] = useState('');
@@ -71,11 +73,11 @@ export default function ProfileSetupScreen() {
 
     const handleCompleteSetup = async () => {
         if (!name.trim() || !area.trim()) {
-            Alert.alert("Required Fields", "Please enter your full name and local area.");
+            showAlert("Required Fields", "Please enter your full name and local area.");
             return;
         }
         if (!gender) {
-            Alert.alert("Required Fields", "Please select your gender.");
+            showAlert("Required Fields", "Please select your gender.");
             return;
         }
 
@@ -95,13 +97,13 @@ export default function ProfileSetupScreen() {
             await refreshProfile(); // Refresh context to trigger App.js routing update
 
             // Gamification / Welcome Notification
-            Alert.alert(
+            showAlert(
                 "Welcome, Citizen!",
                 "Your profile is complete. You have been awarded 100 Civic Points to start your journey!",
                 [{ text: "Let's Go!" }]
             );
         } else {
-            Alert.alert("Error", "Failed to save profile. Please try again.");
+            showAlert("Error", "Failed to save profile. Please try again.");
             setIsSubmitting(false);
         }
     };
