@@ -10,7 +10,7 @@ import { db } from '../services/firebase';
 import { collection, query, where, getDocs, orderBy, doc, onSnapshot } from 'firebase/firestore';
 import { useAlert } from '../context/AlertContext';
 import { verifyUser, RANK_TIERS, calculateRank } from '../services/userService';
-import { Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { Modal, TextInput, ActivityIndicator } from 'react-native';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
@@ -127,7 +127,7 @@ export default function UserDashboardScreen({ navigation }) {
 
     const handleVerify = async () => {
         if (idNumber.length < 5) {
-            Alert.alert("Invalid ID", "Please enter a valid Government ID number.");
+            showAlert("Invalid ID", "Please enter a valid Government ID number.");
             return;
         }
         setIsVerifying(true);
@@ -135,9 +135,9 @@ export default function UserDashboardScreen({ navigation }) {
         setIsVerifying(false);
         if (res.success) {
             setVerificationModalVisible(false);
-            Alert.alert("Success", "Identity verified successfully! You are now a Verified Citizen.");
+            showAlert("Success", "Identity verified successfully! You are now a Verified Citizen.");
         } else {
-            Alert.alert("Error", "Verification failed. Please try again.");
+            showAlert("Error", "Verification failed. Please try again.");
         }
     };
 
