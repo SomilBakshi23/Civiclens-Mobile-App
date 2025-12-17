@@ -1,23 +1,49 @@
-import React from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { FeedCard } from '../components/IssueCard';
+import { getDashboardStats } from '../services/issueService';
+import { ThemeContext } from '../context/ThemeContext';
+import { AuthContext } from '../context/AuthContext';
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
+    const { profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
+    const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
+
+    // Simple Level Calculation: 1 Level per 200 points
+    const currentScore = profile?.civicScore || 0;
+    const currentLevel = Math.floor(currentScore / 200) + 1;
+
+    // Progress to next level
+    const nextLevelScore = currentLevel * 200;
+    const progress = (currentScore % 200) / 200;
+
+    useFocusEffect(
+        useCallback(() => {
+            async function fetchStats() {
+                const s = await getDashboardStats();
+                setStats(s);
+            }
+            fetchStats();
+        }, [])
+    );
+
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
-                    <Ionicons name="menu" size={24} color="white" />
+                <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
+                    <Ionicons name="menu" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Community Pulse</Text>
-                <TouchableOpacity>
-                    <Ionicons name="notifications" size={24} color="white" />
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Community Pulse</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+                    <Ionicons name="notifications" size={24} color={theme.textPrimary} />
                     <View style={styles.badge} />
                 </TouchableOpacity>
             </View>
@@ -26,43 +52,60 @@ export default function DashboardScreen() {
 
                 {/* User Stats Row */}
                 <View style={styles.statsRow}>
-                    <View style={styles.scoreCard}>
+                    <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.scoreHeader}>
                             <Ionicons name="flash" size={14} color="#3B82F6" />
                             <Text style={styles.scoreLabel}>CIVIC SCORE</Text>
                         </View>
-                        <Text style={styles.scoreValue}>1,250</Text>
-                        <Text style={styles.scoreSub}>Top 5% in District</Text>
+                        <Text style={[styles.scoreValue, { color: theme.textPrimary }]}>{currentScore.toLocaleString()}</Text>
+                        <Text style={styles.scoreSub}>Good Standing</Text>
                     </View>
 
-                    <View style={styles.levelCard}>
+                    <View style={[styles.levelCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.scoreHeader}>
-                            <MaterialCommunityIcons name="star-decagram" size={14} color="#F97316" />
+                            <MaterialCommunityIcons name="star-circle" size={14} color="#F97316" />
                             <Text style={styles.scoreLabel}>CONTRIBUTOR</Text>
                         </View>
-                        <Text style={styles.scoreValue}>Lvl 5</Text>
-                        <View style={styles.levelBarBg}>
-                            <View style={[styles.levelBarFill, { width: '60%' }]} />
+                        <Text style={[styles.scoreValue, { color: theme.textPrimary }]}>Lvl {currentLevel}</Text>
+                        <View style={[styles.levelBarBg, { backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0' }]}>
+                            <View style={[styles.levelBarFill, { width: `${progress * 100}%` }]} />
                         </View>
+                    </View>
+                </View>
+
+                {/* Dashboard Stats from Firestore */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={styles.miniLabel}>Total Issues</Text>
+                        <Text style={[styles.miniValue, { color: theme.textPrimary }]}>{stats.totalIssues}</Text>
+                    </View>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={styles.miniLabel}>Resolution Rate</Text>
+                        <Text style={[styles.miniValue, { color: '#4ADE80' }]}>{stats.resolvedRate}</Text>
+                    </View>
+                    <View style={[styles.miniStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={styles.miniLabel}>Avg Time</Text>
+                        <Text style={[styles.miniValue, { color: '#F59E0B' }]}>{stats.resTime}</Text>
                     </View>
                 </View>
 
                 {/* Filters */}
                 <View style={styles.filterRow}>
-                    <TouchableOpacity style={styles.activeFilter}>
-                        <Text style={styles.activeFilterText}>All Issues</Text>
+                    <TouchableOpacity style={[styles.activeFilter, { backgroundColor: theme.textPrimary }]}>
+                        <Text style={[styles.activeFilterText, { color: theme.background }]}>All Issues</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filter}>
+                    <TouchableOpacity style={[styles.filter, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Ionicons name="flame" size={14} color="#F97316" style={{ marginRight: 4 }} />
                         <Text style={styles.filterText}>Trending</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filter}>
+                    <TouchableOpacity style={[styles.filter, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Ionicons name="location-sharp" size={14} color="#64748B" style={{ marginRight: 4 }} />
                         <Text style={styles.filterText}>Near Me</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Feed */}
+                {/* Using static feed here as dashboard might have different queries, but demonstrating service integration in stats above */}
                 <FeedCard
                     item={{
                         status: 'Resolved',
@@ -77,35 +120,8 @@ export default function DashboardScreen() {
                     }}
                 />
 
-                <FeedCard
-                    item={{
-                        status: 'Open',
-                        imageUrl: 'https://images.unsplash.com/photo-1550524514-c6c4e03598d4?q=80&w=1000&auto=format&fit=crop', // Street light dark
-                        timeAgo: '5h ago',
-                        title: 'Streetlight Outage - Sector 4',
-                        description: 'Lights are completely out near the playground entrance. It\'s very dark and feels unsafe for kids walking home.',
-                        department: 'Civic Energy',
-                        verified: false,
-                        votes: 125,
-                        comments: 12,
-                    }}
-                />
-
             </ScrollView>
 
-            {/* Daily Streak Floating */}
-            <View style={styles.streakCard}>
-                <View style={styles.streakIcon}>
-                    <Ionicons name="star" size={16} color="white" />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.streakTitle}>Daily Streak!</Text>
-                    <Text style={styles.streakSub}>Log in tomorrow for +50 pts</Text>
-                </View>
-                <Text style={styles.viewLink}>VIEW</Text>
-            </View>
-
-            {/* FAB */}
             <TouchableOpacity style={styles.fab}>
                 <Ionicons name="add" size={32} color="white" />
             </TouchableOpacity>
@@ -140,7 +156,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
-        paddingBottom: 100,
+        paddingBottom: 130,
     },
 
     // Stats
@@ -156,7 +172,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#1E293B',
-        // Glow effect simulation
         shadowColor: '#3B82F6',
         shadowOpacity: 0.1,
         shadowRadius: 10,
@@ -204,6 +219,27 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
 
+    // Mini Stats for Dashboard
+    miniStat: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+    },
+    miniLabel: {
+        color: colors.textSecondary,
+        fontSize: 10,
+        marginBottom: 4,
+    },
+    miniValue: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+
     // Filters
     filterRow: {
         flexDirection: 'row',
@@ -235,45 +271,6 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontWeight: '600',
         fontSize: 12,
-    },
-
-    // Streak
-    streakCard: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 80, // Leave room for FAB
-        backgroundColor: '#0F1623',
-        borderRadius: 16,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#1E293B',
-        // Gradient border simulation via separate component is hard, stick to solid
-    },
-    streakIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#1D4ED8',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    streakTitle: {
-        color: 'white',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    streakSub: {
-        color: '#94A3B8',
-        fontSize: 11,
-    },
-    viewLink: {
-        color: '#3B82F6',
-        fontSize: 11,
-        fontWeight: '700',
     },
 
     // FAB

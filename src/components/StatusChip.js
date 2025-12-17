@@ -1,36 +1,38 @@
-import React from 'react';
+import { useContext } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function StatusChip({ status }) {
-    let bg = colors.surfaceLight;
-    let color = colors.textSecondary;
+    const { theme } = useContext(ThemeContext);
+    let bg = theme.surfaceLight;
+    let color = theme.textSecondary;
     let label = status;
 
     switch (status?.toLowerCase()) {
         case 'resolved':
-            bg = colors.successBg;
-            color = colors.success;
+            bg = theme.successBg;
+            color = theme.success;
             label = 'RESOLVED';
             break;
         case 'in progress':
-            bg = colors.warningBg;
-            color = colors.warning;
+            bg = theme.warningBg;
+            color = theme.warning;
             label = 'IN PROGRESS';
             break;
         case 'open':
-            bg = colors.errorBg;
-            color = colors.error;
+            bg = theme.errorBg;
+            color = theme.error;
             label = 'OPEN';
             break;
         case 'urgent':
-            bg = colors.errorBg;
-            color = colors.error;
+            bg = theme.errorBg;
+            color = theme.error;
             label = 'URGENT';
             break;
         default:
-            bg = colors.surfaceLight;
-            color = colors.textSecondary;
+            bg = theme.surfaceLight;
+            color = theme.textSecondary;
     }
 
     return (

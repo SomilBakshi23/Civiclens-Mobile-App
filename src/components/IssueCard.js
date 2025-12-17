@@ -3,10 +3,13 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import StatusChip from './StatusChip';
+import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 
-export default function IssueCard({ title, location, status, time, id, votes, comments, image }) {
+export default function IssueCard({ title, location, status, time, id, votes, comments, image, rightAction }) {
+    const { theme } = useContext(ThemeContext);
     return (
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.header}>
                 <View style={styles.iconContainer}>
                     {/* Placeholder icon logic if no image, but we'll assume list has images often or icons */}
@@ -19,24 +22,29 @@ export default function IssueCard({ title, location, status, time, id, votes, co
                     )}
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={styles.title} numberOfLines={1}>{title}</Text>
-                    <Text style={styles.subtitle}>{location} • {id}</Text>
+                    <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
+                        {title}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{location} • {id}</Text>
+                    </View>
                 </View>
-                <StatusChip status={status} />
             </View>
-
-            {/* Optional: Description or middle content could go here if design requires, 
-          but Image 0 "Recent Activity" is compact. Image 3 has big cards. 
-          This card seems to match Image 0's "Recent Activity" list item style. 
-      */}
+            <View style={{ alignItems: 'flex-end', marginLeft: 8, gap: 8 }}>
+                <StatusChip status={status} />
+                {rightAction && rightAction}
+            </View>
         </View>
+
+
     );
 }
 
 // Separate component for the Larger Feed Card (Image 3)
 export function FeedCard({ item }) {
+    const { theme } = useContext(ThemeContext);
     return (
-        <View style={styles.feedCard}>
+        <View style={[styles.feedCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.feedHeader}>
                 <StatusChip status={item.status} />
             </View>
@@ -58,23 +66,34 @@ export function FeedCard({ item }) {
                 <Text style={styles.feedDesc} numberOfLines={3}>{item.description}</Text>
 
                 <View style={styles.officialResponse}>
-                    <MaterialCommunityIcons name="bank" size={16} color={colors.textSecondary} />
-                    <Text style={styles.deptName}>{item.department}</Text>
-                    {item.verified && <MaterialCommunityIcons name="check-decagram" size={14} color={colors.primary} style={{ marginLeft: 4 }} />}
+                    <MaterialCommunityIcons name="bank" size={16} color={theme.textSecondary} />
+                    <Text style={[styles.deptName, { color: theme.textPrimary }]}>{item.department}</Text>
+                    {item.verified && <MaterialCommunityIcons name="check-decagram" size={14} color={theme.primary} style={{ marginLeft: 4 }} />}
                 </View>
+
+                {/* Reporter Trust Signal */}
+                {item.reportedByCivicId && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 4 }}>Reported by: {item.reportedByCivicId}</Text>
+                        {item.reportedByVerified && <MaterialCommunityIcons name="check-decagram" size={12} color="#3B82F6" />}
+                        <View style={{ backgroundColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, marginLeft: 8 }}>
+                            <Text style={{ fontSize: 10, color: 'white', fontWeight: 'bold' }}>{item.reportedByRank || 'Citizen'}</Text>
+                        </View>
+                    </View>
+                )}
 
                 <View style={styles.actions}>
                     <View style={styles.actionGroup}>
-                        <MaterialCommunityIcons name="thumb-up" size={18} color={colors.primary} />
-                        <Text style={styles.actionText}>{item.votes}</Text>
+                        <MaterialCommunityIcons name="thumb-up" size={18} color={theme.primary} />
+                        <Text style={[styles.actionText, { color: theme.textSecondary }]}>{item.votes}</Text>
                     </View>
                     <View style={styles.actionGroup}>
-                        <MaterialCommunityIcons name="comment-outline" size={18} color={colors.textSecondary} />
-                        <Text style={styles.actionText}>{item.comments}</Text>
+                        <MaterialCommunityIcons name="comment-outline" size={18} color={theme.textSecondary} />
+                        <Text style={[styles.actionText, { color: theme.textSecondary }]}>{item.comments}</Text>
                     </View>
                     <View style={{ flex: 1 }} />
-                    <Ionicons name="share-social-outline" size={18} color={colors.textSecondary} />
-                    <Text style={styles.actionText}>Share</Text>
+                    <Ionicons name="share-social-outline" size={18} color={theme.textSecondary} />
+                    <Text style={[styles.actionText, { color: theme.textSecondary }]}>Share</Text>
                 </View>
             </View>
         </View>
@@ -84,12 +103,10 @@ export function FeedCard({ item }) {
 const styles = StyleSheet.create({
     // Compact Card (Home Recent Activity)
     card: {
-        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: colors.border,
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -128,12 +145,10 @@ const styles = StyleSheet.create({
 
     // Large Feed Card
     feedCard: {
-        backgroundColor: colors.surface,
         borderRadius: 20,
         overflow: 'hidden',
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: colors.border,
     },
     feedHeader: {
         position: 'absolute',
