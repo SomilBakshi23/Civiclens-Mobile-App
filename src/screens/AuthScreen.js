@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function AuthScreen() {
     const [isLogin, setIsLogin] = useState(true);
@@ -12,6 +13,7 @@ export default function AuthScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { login, register, continueAsGuest } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
 
     const handleSubmit = async () => {
         if (!email || !password) {
@@ -40,7 +42,7 @@ export default function AuthScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
@@ -48,22 +50,22 @@ export default function AuthScreen() {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                     <View style={styles.header}>
-                        <View style={styles.logoCircle}>
-                            <Ionicons name="search" size={40} color={colors.primary} />
+                        <View style={[styles.logoCircle, { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}>
+                            <Ionicons name="search" size={40} color={theme.primary} />
                         </View>
-                        <Text style={styles.title}>CivicLens</Text>
-                        <Text style={styles.subtitle}>Empowering Citizens, Fixing Cities</Text>
+                        <Text style={[styles.title, { color: theme.textPrimary }]}>CivicLens</Text>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Empowering Citizens, Fixing Cities</Text>
                     </View>
 
                     <View style={styles.form}>
-                        <Text style={styles.formTitle}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+                        <Text style={[styles.formTitle, { color: theme.textPrimary }]}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
 
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                        <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                            <Ionicons name="mail-outline" size={20} color={theme.textSecondary} style={styles.inputIcon} />
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { color: theme.textPrimary }]}
                                 placeholder="Email Address"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={theme.textSecondary}
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -71,41 +73,41 @@ export default function AuthScreen() {
                             />
                         </View>
 
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                        <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                            <Ionicons name="lock-closed-outline" size={20} color={theme.textSecondary} style={styles.inputIcon} />
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { color: theme.textPrimary }]}
                                 placeholder="Password"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={theme.textSecondary}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
                             />
                         </View>
 
-                        <TouchableOpacity style={styles.authButton} onPress={handleSubmit} disabled={isSubmitting}>
+                        <TouchableOpacity style={[styles.authButton, { backgroundColor: theme.primary }]} onPress={handleSubmit} disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <ActivityIndicator color="white" />
                             ) : (
-                                <Text style={styles.authButtonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
+                                <Text style={[styles.authButtonText, { color: 'white' }]}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
                             )}
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.switchButton} onPress={() => setIsLogin(!isLogin)}>
-                            <Text style={styles.switchText}>
+                            <Text style={[styles.switchText, { color: theme.primary }]}>
                                 {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.divider}>
-                        <View style={styles.line} />
-                        <Text style={styles.orText}>OR</Text>
-                        <View style={styles.line} />
+                        <View style={[styles.line, { backgroundColor: theme.border }]} />
+                        <Text style={[styles.orText, { color: theme.textSecondary }]}>OR</Text>
+                        <View style={[styles.line, { backgroundColor: theme.border }]} />
                     </View>
 
-                    <TouchableOpacity style={styles.guestButton} onPress={continueAsGuest}>
-                        <Text style={styles.guestText}>Continue as Guest</Text>
+                    <TouchableOpacity style={[styles.guestButton, { borderColor: theme.border }]} onPress={continueAsGuest}>
+                        <Text style={[styles.guestText, { color: theme.textPrimary }]}>Continue as Guest</Text>
                     </TouchableOpacity>
 
                 </ScrollView>

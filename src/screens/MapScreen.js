@@ -4,11 +4,12 @@ import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Image,
 import MapView, { Marker, Callout, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ const mapDarkStyle = [
 
 export default function MapScreen({ navigation }) {
     const { profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [location, setLocation] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -74,7 +76,8 @@ export default function MapScreen({ navigation }) {
         useCallback(() => {
             const fetchIssues = async () => {
                 try {
-                    const querySnapshot = await getDocs(collection(db, "issues"));
+                    const q = query(collection(db, "issues"), where("status", "!=", "deleted"));
+                    const querySnapshot = await getDocs(q);
                     const fetchedIssues = [];
                     querySnapshot.forEach((doc) => {
                         fetchedIssues.push({ id: doc.id, ...doc.data() });
@@ -98,9 +101,9 @@ export default function MapScreen({ navigation }) {
 
     if (errorMsg) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Ionicons name="location-outline" size={64} color={colors.textSecondary} />
-                <Text style={{ color: 'white', marginTop: 16, fontSize: 16, textAlign: 'center', paddingHorizontal: 40 }}>
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }]}>
+                <Ionicons name="location-outline" size={64} color={theme.textSecondary} />
+                <Text style={{ color: theme.textPrimary, marginTop: 16, fontSize: 16, textAlign: 'center', paddingHorizontal: 40 }}>
                     {errorMsg}
                 </Text>
             </View>
@@ -108,10 +111,10 @@ export default function MapScreen({ navigation }) {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <MapView
                 style={styles.map}
-                customMapStyle={mapDarkStyle}
+                customMapStyle={isDarkMode ? mapDarkStyle : []}
                 provider={PROVIDER_DEFAULT}
                 showsUserLocation={true}
                 followsUserLocation={true}
@@ -143,8 +146,11 @@ export default function MapScreen({ navigation }) {
                             <View style={styles.calloutContainer}>
                                 <Text style={styles.calloutTitle}>{issue.title}</Text>
                                 <Text style={[styles.calloutStatus, { color: getMarkerColor(issue.priority) }]}>
-                                    {issue.status ? issue.status.toUpperCase() : "OPEN"}
+                                    AI PRIORITY: {issue.priority ? issue.priority.toUpperCase() : 'MEDIUM'}
                                 </Text>
+                                {issue.priorityReason ? (
+                                    <Text style={styles.reasonText}>Reason: {issue.priorityReason}</Text>
+                                ) : null}
                             </View>
                         </Callout>
                     </Marker>
@@ -154,57 +160,72 @@ export default function MapScreen({ navigation }) {
             {/* Top Overlays */}
             <View style={styles.topContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.openDrawer ? navigation.openDrawer() : null}>
-                        <Ionicons name="menu" size={24} color="#64748B" />
+                    <TouchableOpacity style={[styles.menuBtn, { backgroundColor: theme.surface }]} onPress={() => navigation.navigate('UserDashboard')}>
+                        <Ionicons name="menu" size={24} color={theme.icon} />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.appTitle}>CivicLens</Text>
-                        <Text style={styles.subtitle}>LIVE MAP</Text>
+                        <Text style={[styles.appTitle, { color: theme.textPrimary }]}>CivicLens</Text>
+                        <Text style={[styles.subtitle, { color: theme.primary }]}>LIVE MAP</Text>
                     </View>
                     <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                         <Image
                             source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }}
-                            style={styles.avatar}
+                            style={[styles.avatar, { borderColor: theme.surface }]}
                         />
                     </TouchableOpacity>
                 </View>
 
                 {/* Filter Chips */}
                 <View style={styles.chipsRow}>
-                    <TouchableOpacity style={styles.activeChip}>
-                        <Text style={styles.activeChipText}>All</Text>
+                    <TouchableOpacity style={[styles.activeChip, { backgroundColor: theme.textPrimary }]}>
+                        <Text style={[styles.activeChipText, { color: theme.background }]}>All</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chip}>
+                    <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={[styles.dot, { backgroundColor: '#F59E0B' }]} />
-                        <Text style={styles.chipText}>Urgent</Text>
+                        <Text style={[styles.chipText, { color: theme.textSecondary }]}>Urgent</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chip}>
-                        <MaterialCommunityIcons name="road-variant" size={14} color="#64748B" style={{ marginRight: 4 }} />
-                        <Text style={styles.chipText}>Roads</Text>
+                    <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <MaterialCommunityIcons name="road-variant" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.chipText, { color: theme.textSecondary }]}>Roads</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Bottom Sheet Card - Static for Demo Aesthetics but Dynamic Content */}
-            <View style={styles.bottomSheet}>
-                <View style={styles.handle} />
+            {/* Bottom Sheet Card */}
+            <View style={[styles.bottomSheet, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+                <View style={[styles.handle, { backgroundColor: theme.border }]} />
                 <View style={styles.sheetHeader}>
                     <View>
                         <View style={styles.sheetMetaRow}>
-                            <View style={styles.statusBadge}>
-                                <Text style={styles.statusText}>LIVE DATA</Text>
+                            <View style={[styles.statusBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+                                <Text style={[styles.statusText, { color: theme.primary }]}>LIVE DATA</Text>
                             </View>
-                            <Text style={styles.issueId}>{issues.length} Issues Nearby</Text>
+                            <Text style={[styles.issueId, { color: theme.textSecondary }]}>{issues.length} Issues Nearby</Text>
                         </View>
-                        <Text style={styles.sheetTitle}>{location ? "You are here" : "Locating..."}</Text>
+                        <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>{location ? "You are here" : "Locating..."}</Text>
                         <View style={styles.locationRow}>
-                            <Ionicons name="location-sharp" size={14} color="#64748B" />
-                            <Text style={styles.locationText}>
+                            <Ionicons name="location-sharp" size={14} color={theme.textSecondary} />
+                            <Text style={[styles.locationText, { color: theme.textSecondary }]}>
                                 {location ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}` : "Waiting for GPS..."}
                             </Text>
                         </View>
                     </View>
+                    <TouchableOpacity
+                        style={[styles.sheetActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                        onPress={() => navigation.navigate('Report', { location })}
+                    >
+                        <Ionicons name="add" size={24} color={theme.textPrimary} />
+                    </TouchableOpacity>
                 </View>
+
+                {/* Quick Action Button for Empty Space */}
+                <TouchableOpacity
+                    style={styles.primaryActionBtn}
+                    onPress={() => navigation.navigate('Report', { location })}
+                >
+                    <Text style={styles.primaryActionText}>Report Issue Here</Text>
+                    <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -257,6 +278,13 @@ const styles = StyleSheet.create({
     calloutStatus: {
         fontSize: 10,
         fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    reasonText: {
+        fontSize: 10,
+        color: '#64748B',
+        textAlign: 'center',
+        fontStyle: 'italic'
     },
 
     // Top Container
@@ -351,7 +379,7 @@ const styles = StyleSheet.create({
     // Bottom Sheet
     bottomSheet: {
         position: 'absolute',
-        bottom: 80, // Above Nav Bar
+        bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: '#0F1623',
@@ -359,7 +387,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 32,
         padding: 24,
         paddingTop: 12,
-        minHeight: 150,
+        paddingBottom: 110, // Add padding to clear the floating tab bar
+        minHeight: 250,
     },
     handle: {
         width: 40,
@@ -411,5 +440,29 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontSize: 13,
         marginLeft: 4,
+    },
+    sheetActionBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#1E293B',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#334155'
+    },
+    primaryActionBtn: {
+        marginTop: 20,
+        backgroundColor: colors.primary,
+        paddingVertical: 16,
+        borderRadius: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    primaryActionText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });

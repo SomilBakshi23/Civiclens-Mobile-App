@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [stats, setStats] = useState({ total: 0, verified: 0 });
     const [categoryCounts, setCategoryCounts] = useState({});
 
@@ -17,13 +19,26 @@ export default function UserDashboardScreen({ navigation }) {
     useFocusEffect(
         useCallback(() => {
             const loadData = async () => {
-                if (!user && !isGuest) return;
+                if (!user) return;
 
                 try {
-                    // Prevent global access - query ONLY my reports
+                    // 1. Fetch Latest Profile (for Civic Score)
+                    const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
+                    if (!userDoc.empty) {
+                        // We could update context, but for now just local state or rely on stats re-render
+                        // Actually, we should force a profile refresh if we want 'profile.civicScore' to update
+                        // But since 'profile' comes from AuthContext, let's fetch it manually here for display
+                        const freshProfile = userDoc.docs[0].data();
+                        setCurrentProfile(freshProfile);
+                    }
+
+                    // 2. Fetch Issues
+                    // Strict Isolation: Only show current user's reports
+                    // Also exclude deleted ones
                     const q = query(
                         collection(db, "issues"),
-                        where("reportedBy", "==", user?.uid)
+                        where("reportedBy", "==", user?.uid),
+                        where("status", "!=", "deleted")
                     );
 
                     const querySnapshot = await getDocs(q);
@@ -53,11 +68,14 @@ export default function UserDashboardScreen({ navigation }) {
         }, [user, isGuest])
     );
 
+    // Use local profile if available, else context profile
+    const [currentProfile, setCurrentProfile] = useState(profile);
+
     const userStats = {
-        starRating: profile?.civicScore ? (profile.civicScore / 20).toFixed(1) : "5.0",
+        starRating: currentProfile?.civicScore ? (currentProfile.civicScore / 20).toFixed(1) : "5.0",
         totalReports: stats.total, // REAL DATA
         verifiedReports: stats.verified, // REAL DATA
-        ranking: profile?.rank || 'New Citizen'
+        ranking: currentProfile?.rank || 'New Citizen'
     };
 
     // Category data with report counts
@@ -104,24 +122,24 @@ export default function UserDashboardScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>User Dashboard</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>User Dashboard</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
                 {/* Profile/Rating Section */}
-                <View style={styles.ratingCard}>
+                <View style={[styles.ratingCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <View style={styles.avatarContainer}>
-                        <View style={styles.avatar}>
+                        <View style={[styles.avatar, { borderColor: theme.surfaceLight }]}>
                             {profile?.photoURL ? (
                                 <Image source={{ uri: profile.photoURL }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
                             ) : (
@@ -129,42 +147,42 @@ export default function UserDashboardScreen({ navigation }) {
                             )}
                         </View>
                         {!isGuest && (
-                            <View style={styles.rankBadge}>
+                            <View style={[styles.rankBadge, { borderColor: theme.surface }]}>
                                 <MaterialCommunityIcons name="trophy" size={14} color="white" />
                             </View>
                         )}
                     </View>
 
-                    <Text style={styles.userName}>
+                    <Text style={[styles.userName, { color: theme.textPrimary }]}>
                         {isGuest ? "Responsible Citizen" : (profile?.name || "Responsible Citizen")}
                     </Text>
-                    <Text style={styles.userSub}>Making the city better, one report at a time</Text>
+                    <Text style={[styles.userSub, { color: theme.textSecondary }]}>Making the city better, one report at a time</Text>
 
                     <View style={styles.starsContainer}>
                         {renderStars(userStats.starRating)}
                     </View>
                     <Text style={styles.ratingText}>{userStats.starRating} / 5.0 Rating</Text>
 
-                    <View style={styles.statsRow}>
+                    <View style={[styles.statsRow, { backgroundColor: theme.background }]}>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.totalReports}</Text>
-                            <Text style={styles.statLabel}>Reports</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.totalReports}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Reports</Text>
                         </View>
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: theme.border }]} />
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.verifiedReports}</Text>
-                            <Text style={styles.statLabel}>Verified</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.verifiedReports}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Verified</Text>
                         </View>
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: theme.border }]} />
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{userStats.ranking}</Text>
-                            <Text style={styles.statLabel}>Ranking</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.ranking}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Ranking</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Categories Section */}
-                <Text style={styles.sectionTitle}>Report History by Category</Text>
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Report History by Category</Text>
                 <Text style={styles.sectionSub}>Tap a category to see your impact</Text>
 
                 <View style={styles.grid}>
@@ -176,7 +194,10 @@ export default function UserDashboardScreen({ navigation }) {
                                 style={[
                                     styles.card,
                                     selectedCategory === cat.id && styles.activeCard,
-                                    { borderColor: selectedCategory === cat.id ? cat.color : colors.border }
+                                    {
+                                        backgroundColor: selectedCategory === cat.id ? (isDarkMode ? '#1E293B' : '#E2E8F0') : theme.surface,
+                                        borderColor: selectedCategory === cat.id ? cat.color : theme.border
+                                    }
                                 ]}
                                 onPress={() => toggleCategory(cat.id)}
                                 activeOpacity={0.8}
@@ -184,10 +205,10 @@ export default function UserDashboardScreen({ navigation }) {
                                 <View style={[styles.iconBox, { backgroundColor: `${cat.color}20` }]}>
                                     <MaterialCommunityIcons name={cat.icon} size={28} color={cat.color} />
                                 </View>
-                                <Text style={styles.cardTitle}>{cat.name}</Text>
+                                <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{cat.name}</Text>
 
                                 <View style={styles.countBadge}>
-                                    <Text style={styles.countText}>{count}</Text>
+                                    <Text style={[styles.countText, { color: theme.textPrimary }]}>{count}</Text>
                                     <Text style={styles.countLabel}>Reports</Text>
                                 </View>
                             </TouchableOpacity>

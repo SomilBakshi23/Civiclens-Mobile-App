@@ -8,6 +8,7 @@ import { colors } from './src/theme/colors';
 
 // Auth
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
+import { ThemeProvider, ThemeContext } from './src/context/ThemeContext';
 import AuthScreen from './src/screens/AuthScreen';
 import ProfileSetupNavigator from './src/navigation/ProfileSetupNavigator';
 
@@ -22,7 +23,10 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import CivicPreferencesScreen from './src/screens/CivicPreferencesScreen';
+
 import IssueDetailsScreen from './src/screens/IssueDetailsScreen';
+import HelpCenterScreen from './src/screens/HelpCenterScreen';
+import SplashScreen from './src/screens/SplashScreen';
 
 import CustomTabBar from './src/components/CustomTabBar';
 
@@ -49,11 +53,12 @@ function BottomTabNavigator() {
 
 function RootNavigator() {
   const { user, profile, isGuest, loading } = useContext(AuthContext);
+  const { theme, isDarkMode } = useContext(ThemeContext);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -81,7 +86,7 @@ function RootNavigator() {
   // 3. Authenticated & Complete OR Guest -> Main App
   return (
     <NavigationContainer>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Main Tab Navigator */}
@@ -94,16 +99,26 @@ function RootNavigator() {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="CivicPreferences" component={CivicPreferencesScreen} />
+
         <Stack.Screen name="IssueDetails" component={IssueDetailsScreen} />
+        <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
   return (
     <AuthProvider>
-      <RootNavigator />
+      <ThemeProvider>
+        {showSplash ? (
+          <SplashScreen onFinish={() => setShowSplash(false)} />
+        ) : (
+          <RootNavigator />
+        )}
+      </ThemeProvider>
     </AuthProvider>
   );
 }

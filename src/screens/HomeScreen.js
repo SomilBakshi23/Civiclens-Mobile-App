@@ -6,12 +6,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import IssueCard from '../components/IssueCard';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore';
 import { upvoteIssue, getDashboardStats } from '../services/issueService';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
-    const { isGuest, logout, user, profile } = useContext(AuthContext); // Access Auth Context
+    const { isGuest, logout, user, profile } = useContext(AuthContext);
+    const { theme, isDarkMode } = useContext(ThemeContext);
 
     const [issues, setIssues] = useState([]);
     const [stats, setStats] = useState({ totalIssues: 0, resolvedRate: '0%', resTime: '0h' });
@@ -24,7 +26,7 @@ export default function HomeScreen({ navigation }) {
             const statsPromise = getDashboardStats();
 
             // Fetch Real Issues from Firestore
-            const q = query(collection(db, "issues"), orderBy("createdAt", "desc"), limit(20));
+            const q = query(collection(db, "issues"), where("status", "!=", "deleted"), orderBy("createdAt", "desc"), limit(20));
             const querySnapshot = await getDocs(q);
             const fetchedIssues = [];
             querySnapshot.forEach((doc) => {
@@ -92,22 +94,22 @@ export default function HomeScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={theme.background} />
 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('UserDashboard')}>
-                    <Feather name="menu" size={24} color="white" />
+                    <Feather name="menu" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
                 <View style={styles.logoContainer}>
                     <View style={styles.logoIcon}>
-                        <Ionicons name="search" size={14} color={colors.primary} />
+                        <Ionicons name="search" size={14} color={theme.primary} />
                     </View>
-                    <Text style={styles.logoText}>CivicLens</Text>
+                    <Text style={[styles.logoText, { color: theme.textPrimary }]}>CivicLens</Text>
                 </View>
                 <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-                    <Ionicons name="notifications" size={24} color="white" />
+                    <Ionicons name="notifications" size={24} color={theme.textPrimary} />
                     <View style={styles.badge} />
                 </TouchableOpacity>
             </View>
@@ -124,7 +126,7 @@ export default function HomeScreen({ navigation }) {
                         <Text style={styles.statusText}>SYSTEM OPERATIONAL</Text>
                     </View>
 
-                    <Text style={styles.heroTitle}>
+                    <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
                         Report. Track.{"\n"}
                         <Text style={styles.highlight}>Fix Your City.</Text>
                     </Text>
@@ -153,59 +155,59 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Live Impact (Dynamic) */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Live Impact</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Live Impact</Text>
                     <Text style={styles.updateTime}>
                         <Ionicons name="time-outline" size={12} color={colors.textSecondary} /> Updated just now
                     </Text>
                 </View>
 
                 <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>REPORTS</Text>
-                        <Text style={styles.statValue}>{stats.totalIssues}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.totalIssues}</Text>
                         <Text style={[styles.statTrend, { color: '#60A5FA' }]}>↗ +12%</Text>
                     </View>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>RESOLVED</Text>
-                        <Text style={styles.statValue}>{stats.resolvedRate}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.resolvedRate}</Text>
                         <Text style={[styles.statTrend, { color: '#4ADE80' }]}>✓ +5%</Text>
                     </View>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={styles.statLabel}>FIX TIME</Text>
-                        <Text style={styles.statValue}>{stats.resTime}</Text>
+                        <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stats.resTime}</Text>
                         <Text style={[styles.statTrend, { color: '#F59E0B' }]}>↘ -2h</Text>
                     </View>
                 </View>
 
                 {/* Active Issues Map Preview (Static preserved per design) */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Active Issues Map</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Active Issues Map</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Map')}>
                         <Text style={styles.linkText}>Full Map →</Text>
                     </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity
-                    style={styles.mapPreviewCard}
+                    style={[styles.mapPreviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
                     onPress={() => navigation.navigate('Map')}
                     activeOpacity={0.9}
                 >
-                    <View style={[StyleSheet.absoluteFill, styles.mapPattern]} />
+                    <View style={[StyleSheet.absoluteFill, styles.mapPattern, { backgroundColor: theme.canvas || theme.background }]} />
                     <View style={styles.radarEffect}>
                         <View style={styles.radarCircle} />
                         <Ionicons name="add" size={24} color="white" />
                     </View>
-                    <View style={styles.mapControls}>
-                        <View style={styles.controlIcon}><Ionicons name="home" size={18} color={colors.primary} /></View>
-                        <View style={styles.controlIcon}><Ionicons name="map" size={18} color={colors.textSecondary} /></View>
+                    <View style={[styles.mapControls, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <View style={styles.controlIcon}><Ionicons name="home" size={18} color={theme.primary} /></View>
+                        <View style={styles.controlIcon}><Ionicons name="map" size={18} color={theme.textSecondary} /></View>
                     </View>
-                    <View style={styles.nearbyAlert}>
-                        <View style={styles.alertIcon}>
-                            <MaterialCommunityIcons name="target" size={20} color="white" />
+                    <View style={[styles.nearbyAlert, { backgroundColor: theme.surface + 'EE', borderColor: theme.border }]}>
+                        <View style={[styles.alertIcon, { backgroundColor: theme.surfaceLight, borderColor: theme.border }]}>
+                            <MaterialCommunityIcons name="target" size={20} color={theme.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.alertTitle}>3 Issues near your location</Text>
-                            <Text style={styles.alertSubtitle}>Downtown District • 0.5 miles</Text>
+                            <Text style={[styles.alertTitle, { color: theme.textPrimary }]}>3 Issues near your location</Text>
+                            <Text style={[styles.alertSubtitle, { color: theme.textSecondary }]}>Downtown District • 0.5 miles</Text>
                         </View>
                         <View style={styles.arrowBtn}>
                             <Ionicons name="arrow-forward" size={16} color="white" />
@@ -214,7 +216,7 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
 
                 {/* Recent Activity (Dynamic) */}
-                <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12 }]}>Recent Activity</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12, color: theme.textPrimary }]}>Recent Activity</Text>
 
                 {loading ? (
                     <ActivityIndicator size="large" color={colors.primary} />
@@ -399,7 +401,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: 'white',
     },
     updateTime: {
         fontSize: 12,
@@ -416,11 +417,9 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: colors.surface,
         padding: 12,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.border,
         alignItems: 'flex-start',
     },
     statLabel: {
@@ -432,7 +431,6 @@ const styles = StyleSheet.create({
     },
     statValue: {
         fontSize: 24,
-        color: 'white',
         fontWeight: '700',
         marginBottom: 4,
     },

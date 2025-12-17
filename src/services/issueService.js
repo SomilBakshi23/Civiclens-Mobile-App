@@ -1,6 +1,8 @@
 // src/services/issueService.js
 import { db } from './firebase';
+import { updateCivicScore, createNotification } from './userService';
 import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc, getCountFromServer, where } from "firebase/firestore";
+import { calculatePriority } from '../utils/priorityEngine';
 
 const ISSUES_COLLECTION = 'issues';
 
@@ -75,6 +77,13 @@ export const createIssue = async (issueData) => {
             createdAt: serverTimestamp()
         });
         console.log("Document written with ID: ", docRef.id);
+
+        // REWARD: +10 Civic Score
+        if (issueData.reportedBy) {
+            updateCivicScore(issueData.reportedBy, 10);
+            createNotification(issueData.reportedBy, "Civic Score Update", "You earned +10 Civic Score for reporting an issue!");
+        }
+
         // Update the local ID with real ID (optional for demo)
         return { success: true, id: docRef.id };
     } catch (e) {
@@ -102,6 +111,16 @@ export const upvoteIssue = async (issueId, userId) => {
     if (issue) {
         // Prevent local double count if we tracked it locally (simplified for demo)
         issue.upvotes = (issue.upvotes || 0) + 1;
+
+        // Recalculate Priority Dynamically
+        const { priority, reason } = calculatePriority({
+            category: issue.category,
+            upvotes: issue.upvotes,
+            imageUri: issue.imageUrl || issue.imageUri,
+            title: issue.title
+        });
+        issue.priority = priority;
+        issue.priorityReason = reason;
     }
 
     if (issueId.startsWith('mock') || issueId.startsWith('local')) return true;
@@ -116,17 +135,34 @@ export const upvoteIssue = async (issueId, userId) => {
 
         // We will do a check to be nicer
         const docSnap = await getDoc(issueRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const likedBy = data.likedBy || [];
-            if (likedBy.includes(userId)) {
-                return false; // Already liked
-            }
+
+        if (!docSnap.exists()) {
+            console.error("Issue not found");
+            return false;
         }
+
+        const data = docSnap.data();
+        const likedBy = data.likedBy || [];
+
+        if (likedBy.includes(userId)) {
+            return false; // Already liked
+        }
+
+        const currentUpvotes = (data.upvotes || 0) + 1;
+
+        // Recalculate Priority for Real Backend Data
+        const { priority, reason } = calculatePriority({
+            category: data.category,
+            upvotes: currentUpvotes,
+            imageUri: data.imageUrl || data.imageUri,
+            title: data.title
+        });
 
         await updateDoc(issueRef, {
             upvotes: increment(1),
-            likedBy: arrayUnion(userId)
+            likedBy: arrayUnion(userId),
+            priority: priority,
+            priorityReason: reason
         });
         return true;
     } catch (e) {
@@ -155,17 +191,34 @@ export const updateIssueStatus = async (issueId, status) => {
 };
 
 
+export const deleteIssue = async (issueId, userId) => {
+    try {
+        const issueRef = doc(db, ISSUES_COLLECTION, issueId);
+
+        // Fetch to confirm owner or just trust caller (for demo trusting)
+        // PENALTY: -10 Civic Score
+        if (userId) {
+            updateCivicScore(userId, -10);
+            createNotification(userId, "Civic Score Update", "You lost -10 Civic Score for deleting a report.");
+        }
+
+        await updateDoc(issueRef, {
+            status: 'deleted'
+        });
+        return true;
+    } catch (e) {
+        console.error("Error deleting issue: ", e);
+        return false;
+    }
+};
 
 export const getDashboardStats = async () => {
     try {
         const coll = collection(db, ISSUES_COLLECTION);
-        const snapshot = await getCountFromServer(coll);
+        // Exclude deleted issues from total count
+        const qTotal = query(coll, where("status", "!=", "deleted"));
+        const snapshot = await getCountFromServer(qTotal);
         const total = snapshot.data().count;
-
-        // For resolved, we would need a query. For now, let's just estimation or do a second count
-        // Optimizing to just 1 count for "Total Reports" as requested by user, 
-        // but let's try to be accurate if possible without 2 reads if expensive? 
-        // Actually 2 count queries is fine for this scale.
 
         const qResolved = query(coll, where("status", "==", "resolved"));
         const snapshotResolved = await getCountFromServer(qResolved);
@@ -176,7 +229,7 @@ export const getDashboardStats = async () => {
         return {
             totalIssues: total,
             resolvedRate: `${rate}%`,
-            resTime: '48h' // Hardcoded for now as it requires complex calculation
+            resTime: '48h'
         };
     } catch (e) {
         console.warn("Error fetching stats:", e);

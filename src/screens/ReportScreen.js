@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { ThemeContext } from '../context/ThemeContext';
 import { createIssue } from '../services/issueService';
 import { calculatePriority } from '../utils/priorityEngine';
 import { AuthContext } from '../context/AuthContext';
@@ -13,6 +14,7 @@ const { width } = Dimensions.get('window');
 
 export default function ReportScreen({ navigation }) {
     const { isGuest, logout, user, profile } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
 
     const [description, setDescription] = useState('');
     const [title, setTitle] = useState('');
@@ -54,10 +56,10 @@ export default function ReportScreen({ navigation }) {
     // Guest & Incomplete Profile Protection Logic
     if (isGuest || (user && profile && !profile.isProfileComplete)) {
         return (
-            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-                <MaterialCommunityIcons name="account-lock" size={64} color={colors.textSecondary} style={{ marginBottom: 20 }} />
-                <Text style={styles.headerTitle}>{isGuest ? "Login Required" : "Profile Incomplete"}</Text>
-                <Text style={[styles.heroSubtitle, { marginTop: 10, marginBottom: 30 }]}>
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: theme.background }]}>
+                <MaterialCommunityIcons name="account-lock" size={64} color={theme.textSecondary} style={{ marginBottom: 20 }} />
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>{isGuest ? "Login Required" : "Profile Incomplete"}</Text>
+                <Text style={[styles.heroSubtitle, { marginTop: 10, marginBottom: 30, color: theme.textSecondary, textAlign: 'center' }]}>
                     {isGuest
                         ? "You must be logged in to report issues. Guest access is read-only."
                         : "You must complete your profile setup to report issues."}
@@ -78,7 +80,12 @@ export default function ReportScreen({ navigation }) {
             });
 
             if (!result.canceled) {
-                setImage(result.assets[0].uri);
+                const asset = result.assets[0];
+                if (asset.width < 200 || asset.height < 200) {
+                    Alert.alert("Image Error", "The image is too small. Please take a clear photo of the issue.");
+                    return;
+                }
+                setImage(asset.uri);
             }
         } catch (e) {
             Alert.alert("Camera Error", "Could not open camera. Please try again or check permissions.");
@@ -92,6 +99,11 @@ export default function ReportScreen({ navigation }) {
             return;
         }
 
+        if (!image) {
+            Alert.alert("Evidence Required", "Please upload a clear image of the issue to allow AI verification.");
+            return;
+        }
+
         if (!location) {
             Alert.alert("Location Missing", "We need your location to report this issue. Please enable permissions.");
             return;
@@ -99,7 +111,12 @@ export default function ReportScreen({ navigation }) {
 
         setLoading(true);
 
-        const priority = calculatePriority(category.name + " " + title, 0);
+        const { priority, reason } = calculatePriority({
+            category: category.name,
+            upvotes: 0,
+            imageUri: image,
+            title: title
+        });
 
         // Capture current GPS coordinates exactly when submitting
         let currentLoc = location;
@@ -114,6 +131,7 @@ export default function ReportScreen({ navigation }) {
             description: description,
             category: category.name,
             priority: priority,
+            priorityReason: reason,
             status: 'open', // Explicitly set status to open
             reportedBy: user?.uid, // Bind to current user
             location: locationAddress,
@@ -128,7 +146,7 @@ export default function ReportScreen({ navigation }) {
         setLoading(false);
 
         if (result.success) {
-            Alert.alert("Report Submitted", "Your issue has been reported and prioritized.", [
+            Alert.alert("Report Submitted", "Your issue has been reported.\n\n🏆 You earned +10 Civic Score!", [
                 {
                     text: "OK", onPress: () => {
                         // Clear Form
@@ -147,22 +165,22 @@ export default function ReportScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="close" size={24} color="white" />
+                    <Ionicons name="close" size={24} color={theme.icon} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>New Report</Text>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>New Report</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* AI Camera Section */}
-                <TouchableOpacity style={styles.cameraContainer} onPress={takePhoto}>
+                <TouchableOpacity style={[styles.cameraContainer, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={takePhoto}>
                     {image ? (
                         <Image source={{ uri: image }} style={StyleSheet.absoluteFill} />
                     ) : (
-                        <View style={styles.cameraView}>
+                        <View style={[styles.cameraView, { backgroundColor: theme.background }]}>
                             <Image
                                 source={{ uri: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }}
                                 style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
@@ -184,12 +202,12 @@ export default function ReportScreen({ navigation }) {
 
                 {/* Title Input */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>ISSUE TITLE</Text>
-                    <View style={styles.inputContainerSm}>
+                    <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ISSUE TITLE</Text>
+                    <View style={[styles.inputContainerSm, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { color: theme.textPrimary }]}
                             placeholder="e.g., Pothole on 5th Ave"
-                            placeholderTextColor={colors.textTertiary}
+                            placeholderTextColor={theme.textSecondary}
                             value={title}
                             onChangeText={setTitle}
                         />
@@ -211,7 +229,8 @@ export default function ReportScreen({ navigation }) {
                             key={item.name}
                             style={[
                                 styles.tag,
-                                category.name === item.name && styles.activeTag,
+                                { backgroundColor: theme.surface, borderColor: theme.border },
+                                category.name === item.name && { backgroundColor: theme.primary + '20', borderColor: theme.primary },
                                 { marginRight: 12 } // Add gap
                             ]}
                             onPress={() => setCategory({ name: item.name, icon: item.icon })}
@@ -227,7 +246,7 @@ export default function ReportScreen({ navigation }) {
                                 color={item.color}
                                 style={{ marginRight: 6 }}
                             />
-                            <Text style={[styles.tagText, category.name === item.name && styles.activeTagText]}>
+                            <Text style={[styles.tagText, { color: theme.textPrimary }, category.name === item.name && { color: theme.primary }]}>
                                 {item.name}
                             </Text>
                         </TouchableOpacity>
@@ -236,28 +255,28 @@ export default function ReportScreen({ navigation }) {
 
                 {/* Location */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>LOCATION</Text>
-                    <View style={styles.locationCard}>
+                    <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>LOCATION</Text>
+                    <View style={[styles.locationCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.mapSnippet}>
-                            <View style={{ flex: 1, backgroundColor: '#2C3E50', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
-                                <Ionicons name="location" size={20} color="#60A5FA" />
+                            <View style={{ flex: 1, backgroundColor: theme.canvas, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
+                                <Ionicons name="location" size={20} color={theme.primary} />
                             </View>
                         </View>
                         <View style={styles.locationInfo}>
-                            <Text style={styles.addressTitle}>{locationAddress}</Text>
-                            <Text style={styles.addressSub}>{location ? `Lat: ${location.coords.latitude.toFixed(5)}, Long: ${location.coords.longitude.toFixed(5)} ` : "Waiting for GPS..."}</Text>
+                            <Text style={[styles.addressTitle, { color: theme.textPrimary }]}>{locationAddress}</Text>
+                            <Text style={[styles.addressSub, { color: theme.textSecondary }]}>{location ? `Lat: ${location.coords.latitude.toFixed(5)}, Long: ${location.coords.longitude.toFixed(5)} ` : "Waiting for GPS..."}</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Description */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>DESCRIPTION</Text>
-                    <View style={styles.inputContainer}>
+                    <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>DESCRIPTION</Text>
+                    <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { color: theme.textPrimary }]}
                             placeholder="Describe the issue briefly..."
-                            placeholderTextColor={colors.textTertiary}
+                            placeholderTextColor={theme.textSecondary}
                             multiline
                             value={description}
                             onChangeText={setDescription}

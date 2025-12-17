@@ -5,12 +5,14 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-ico
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { updateUserProfile } from '../services/userService';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }) {
     const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
+    const { theme, toggleTheme, isDarkMode } = useContext(ThemeContext);
     const [updatingImage, setUpdatingImage] = useState(false);
 
     const handleLogout = () => {
@@ -30,29 +32,35 @@ export default function ProfileScreen({ navigation }) {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.5,
-        });
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
 
-        if (!result.canceled) {
-            setUpdatingImage(true);
-            const newPhotoURL = result.assets[0].uri;
+            if (!result.canceled) {
+                setUpdatingImage(true);
+                const newPhotoURL = result.assets[0].uri;
 
-            const updateData = {
-                photoURL: newPhotoURL
-            };
+                const updateData = {
+                    photoURL: newPhotoURL
+                };
 
-            const updateResult = await updateUserProfile(user.uid, updateData);
+                const updateResult = await updateUserProfile(user.uid, updateData);
 
-            if (updateResult.success) {
-                await refreshProfile();
-                Alert.alert("Success", "Profile photo updated!");
-            } else {
-                Alert.alert("Error", "Failed to update profile photo.");
+                if (updateResult.success) {
+                    await refreshProfile();
+                    Alert.alert("Success", "Profile photo updated!");
+                } else {
+                    Alert.alert("Error", "Failed to update profile photo.");
+                }
+                setUpdatingImage(false);
             }
+        } catch (error) {
+            console.error("Error picking image:", error);
+            Alert.alert("Error", "Failed to pick image.");
             setUpdatingImage(false);
         }
     };
@@ -63,9 +71,9 @@ export default function ProfileScreen({ navigation }) {
     const displayCivicId = profile?.civicId || (isGuest ? "GUEST-MODE" : "----");
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>User Profile</Text>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>User Profile</Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -74,60 +82,71 @@ export default function ProfileScreen({ navigation }) {
                     <View style={styles.avatarContainer}>
                         <Image
                             source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }} // Avatar from Profile
-                            style={styles.avatar}
+                            style={[styles.avatar, { borderColor: theme.surfaceLight }]}
                         />
-                        <TouchableOpacity style={styles.editBadge} onPress={pickImage} disabled={updatingImage}>
+                        <TouchableOpacity style={[styles.editBadge, { backgroundColor: theme.primary, borderColor: theme.background }]} onPress={pickImage} disabled={updatingImage}>
                             {updatingImage ? <ActivityIndicator size="small" color="white" /> : <Ionicons name="pencil" size={14} color="white" />}
                         </TouchableOpacity>
                     </View>
                     <View style={styles.profileInfo}>
-                        <Text style={styles.name}>{displayName}</Text>
-                        <Text style={styles.location}>{user?.email || "No Email"}</Text>
-                        <View style={styles.civicIdBadge}>
-                            <Text style={styles.civicIdLabel}>CIVIC ID: </Text>
-                            <Text style={styles.civicIdValue}>{displayCivicId}</Text>
+                        <Text style={[styles.name, { color: theme.textPrimary }]}>{displayName}</Text>
+                        <Text style={[styles.location, { color: theme.textSecondary }]}>{user?.email || "No Email"}</Text>
+                        <View style={[styles.civicIdBadge, { backgroundColor: theme.infoBg, borderColor: theme.infoBg }]}>
+                            <Text style={[styles.civicIdLabel, { color: theme.primary }]}>CIVIC ID: </Text>
+                            <Text style={[styles.civicIdValue, { color: theme.textPrimary }]}>{displayCivicId}</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Menu Items */}
                 <View style={styles.menuContainer}>
-                    <Text style={styles.sectionTitle}>Account</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
+
+                    {/* Theme Toggle */}
+                    <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={toggleTheme}>
+                        <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
+                            <Ionicons name={isDarkMode ? "moon-outline" : "sunny-outline"} size={20} color={isDarkMode ? "#F59E0B" : "#F97316"} />
+                        </View>
+                        <Text style={[styles.menuText, { color: theme.textPrimary }]}>{isDarkMode ? "Dark Mode" : "Light Mode"}</Text>
+                        <View style={{ transform: [{ scale: 0.8 }] }}>
+                            <Ionicons name={isDarkMode ? "toggle" : "toggle-outline"} size={32} color={theme.primary} />
+                        </View>
+                    </TouchableOpacity>
 
                     {!isGuest && (
-                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('EditProfile')}>
-                            <View style={styles.menuIconBox}>
-                                <Ionicons name="person-outline" size={20} color={colors.primary} />
+                        <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('EditProfile')}>
+                            <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
+                                <Ionicons name="person-outline" size={20} color={theme.primary} />
                             </View>
-                            <Text style={styles.menuText}>Edit Profile</Text>
-                            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                            <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit Profile</Text>
+                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('CivicPreferences')}>
-                        <View style={styles.menuIconBox}>
+                    <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('CivicPreferences')}>
+                        <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
                             <Ionicons name="options-outline" size={20} color="#10B981" />
                         </View>
-                        <Text style={styles.menuText}>Civic Preferences</Text>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                        <Text style={[styles.menuText, { color: theme.textPrimary }]}>Civic Preferences</Text>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
 
                     <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support & Legal</Text>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Privacy')}>
-                        <View style={styles.menuIconBox}>
+                    <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Privacy')}>
+                        <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
                             <Ionicons name="shield-checkmark-outline" size={20} color="#F59E0B" />
                         </View>
-                        <Text style={styles.menuText}>Privacy & Security</Text>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                        <Text style={[styles.menuText, { color: theme.textPrimary }]}>Privacy & Security</Text>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
-                        <View style={styles.menuIconBox}>
+                    <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('HelpCenter')}>
+                        <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
                             <Ionicons name="help-circle-outline" size={20} color="#8B5CF6" />
                         </View>
-                        <Text style={styles.menuText}>Help Center</Text>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                        <Text style={[styles.menuText, { color: theme.textPrimary }]}>Help Center</Text>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
                 </View>
 

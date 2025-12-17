@@ -5,15 +5,17 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { updateUserProfile } from '../services/userService';
 
 export default function ProfileSetupScreen() {
     const { user, profile, refreshProfile } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
 
     const [name, setName] = useState('');
     const [area, setArea] = useState('');
     const [gender, setGender] = useState(''); // 'male', 'female', 'other'
-    const [avatarUrl, setAvatarUrl] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('https://api.dicebear.com/7.x/avataaars/png?seed=CivicLensInit');
     const [isCustomAvatar, setIsCustomAvatar] = useState(false); // Track if user manually picked/randomized
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -107,48 +109,48 @@ export default function ProfileSetupScreen() {
     // If profile hasn't loaded yet
     if (!profile) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading Profile...</Text>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.textPrimary }]}>Loading Profile...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Complete Your Profile</Text>
-                        <Text style={styles.subtitle}>You're almost there! We've generated your unique Civic ID.</Text>
+                        <Text style={[styles.title, { color: theme.textPrimary }]}>Complete Your Profile</Text>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>You're almost there! We've generated your unique Civic ID.</Text>
                     </View>
 
                     {/* Avatar Section */}
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarContainer}>
-                            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-                            <TouchableOpacity style={styles.editIconBadge} onPress={pickImage}>
+                            <Image source={{ uri: avatarUrl }} style={[styles.avatar, { backgroundColor: theme.surface, borderColor: theme.surface }]} />
+                            <TouchableOpacity style={[styles.editIconBadge, { backgroundColor: theme.primary, borderColor: theme.background }]} onPress={pickImage}>
                                 <Ionicons name="camera" size={20} color="white" />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.avatarActions}>
-                            <TouchableOpacity style={styles.actionBtn} onPress={pickImage}>
-                                <Text style={styles.actionBtnText}>Upload Photo</Text>
+                            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={pickImage}>
+                                <Text style={[styles.actionBtnText, { color: theme.textPrimary }]}>Upload Photo</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={randomizeAvatar}>
-                                <MaterialCommunityIcons name="dice-3" size={18} color={colors.primary} style={{ marginRight: 4 }} />
-                                <Text style={[styles.actionBtnText, { color: colors.primary }]}>Randomize</Text>
+                            <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn, { borderColor: theme.primary }]} onPress={randomizeAvatar}>
+                                <MaterialCommunityIcons name="dice-3" size={18} color={theme.primary} style={{ marginRight: 4 }} />
+                                <Text style={[styles.actionBtnText, { color: theme.primary }]}>Randomize</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* Validated Civic ID Card */}
-                    <View style={styles.civicIdCard}>
-                        <Text style={styles.civicIdLabel}>YOUR CIVIC ID</Text>
-                        <Text style={styles.civicIdValue}>{profile.civicId || "GENERATING..."}</Text>
+                    <View style={[styles.civicIdCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={[styles.civicIdLabel, { color: theme.textSecondary }]}>YOUR CIVIC ID</Text>
+                        <Text style={[styles.civicIdValue, { color: theme.textPrimary }]}>{profile.civicId || "GENERATING..."}</Text>
                         <View style={styles.verifiedBadge}>
                             <MaterialCommunityIcons name="check-decagram" size={14} color="#10B981" />
                             <Text style={styles.verifiedText}>Verified Unique ID</Text>
@@ -160,25 +162,27 @@ export default function ProfileSetupScreen() {
 
                         {/* Gender Selection */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Gender</Text>
+                            <Text style={[styles.label, { color: theme.textPrimary }]}>Gender</Text>
                             <View style={styles.genderContainer}>
                                 {['male', 'female', 'other'].map((g) => (
                                     <TouchableOpacity
                                         key={g}
                                         style={[
                                             styles.genderOption,
-                                            gender === g && styles.genderOptionSelected
+                                            { backgroundColor: theme.surface, borderColor: theme.border },
+                                            gender === g && { backgroundColor: theme.primary, borderColor: theme.primary }
                                         ]}
                                         onPress={() => setGender(g)}
                                     >
                                         <MaterialCommunityIcons
                                             name={g === 'male' ? 'gender-male' : g === 'female' ? 'gender-female' : 'gender-non-binary'}
                                             size={20}
-                                            color={gender === g ? 'white' : colors.textSecondary}
+                                            color={gender === g ? 'white' : theme.textSecondary}
                                         />
                                         <Text style={[
                                             styles.genderText,
-                                            gender === g && styles.genderTextSelected
+                                            { color: theme.textSecondary },
+                                            gender === g && { color: 'white' }
                                         ]}>
                                             {g.charAt(0).toUpperCase() + g.slice(1)}
                                         </Text>
@@ -188,29 +192,29 @@ export default function ProfileSetupScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name</Text>
+                            <Text style={[styles.label, { color: theme.textPrimary }]}>Full Name</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                                 placeholder="e.g. Jane Doe"
-                                placeholderTextColor={colors.textTertiary}
+                                placeholderTextColor={theme.textTertiary || theme.textSecondary}
                                 value={name}
                                 onChangeText={setName}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Area / Locality</Text>
+                            <Text style={[styles.label, { color: theme.textPrimary }]}>Area / Locality</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                                 placeholder="e.g. Downtown, Sector 4"
-                                placeholderTextColor={colors.textTertiary}
+                                placeholderTextColor={theme.textTertiary || theme.textSecondary}
                                 value={area}
                                 onChangeText={setArea}
                             />
                         </View>
 
                         <TouchableOpacity
-                            style={styles.submitBtn}
+                            style={[styles.submitBtn, { backgroundColor: theme.primary }]}
                             onPress={handleCompleteSetup}
                             disabled={isSubmitting}
                         >

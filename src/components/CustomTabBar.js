@@ -3,11 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
     const insets = useSafeAreaInsets();
+    const { theme, isDarkMode } = useContext(ThemeContext);
 
     // Define the specific order of main tabs
     const mainTabs = ['Home', 'Map', 'Community', 'Profile'];
@@ -29,7 +32,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
 
     return (
         <View style={[styles.container, { paddingBottom: insets.bottom + 10 }]}>
-            <View style={styles.bar}>
+            <View style={[styles.bar, { backgroundColor: theme.tabBar, borderColor: theme.tabBarBorder, shadowColor: isDarkMode ? '#000' : '#ccc' }]}>
                 {/* Left Side Tabs */}
                 {mainTabs.slice(0, 2).map((routeName) => {
                     const route = state.routes.find(r => r.name === routeName);
@@ -61,7 +64,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
                             <Ionicons
                                 name={getIconName(routeName, isFocused)}
                                 size={24}
-                                color={isFocused ? '#3B82F6' : '#94A3B8'} // Blue active, Grey inactive
+                                color={isFocused ? theme.primary : theme.textSecondary}
                             />
                         </TouchableOpacity>
                     );
@@ -100,7 +103,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
                             <Ionicons
                                 name={getIconName(routeName, isFocused)}
                                 size={24}
-                                color={isFocused ? '#3B82F6' : '#94A3B8'}
+                                color={isFocused ? theme.primary : theme.textSecondary}
                             />
                         </TouchableOpacity>
                     );
@@ -130,14 +133,12 @@ const styles = StyleSheet.create({
     },
     bar: {
         flexDirection: 'row',
-        backgroundColor: '#0F172A', // Dark Slate
         borderRadius: 24,
         height: 64,
         width: '100%',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 10,
-        shadowColor: '#000',
         shadowOffset: {
             width: 0,
             height: 4,
@@ -146,7 +147,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 10,
         borderWidth: 1,
-        borderColor: '#1E293B',
     },
     tabItem: {
         flex: 1,
@@ -174,15 +174,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 8,
         elevation: 8,
-        borderWidth: 4,
-        borderColor: '#050A14', // Match background behind standard nav? Or transparent?
-        // Using a dark border to create a "cutout" effect visual if it overlaps the bar,
-        // but here it sits above. Let's make the border match the screen background potentially,
-        // or just keep it clean.
-        // User asked for "compact, minimal... smooth spacing". 
-        // Let's go with no border or a border matching the bar background if we want a cutout look.
-        // I'll stick to a border matching the *screen* background if I knew it, 
-        // but since it floats over the content, no border is safer/cleaner unless checking background color.
-        // Actually, let's remove the border to keep it "floating" and clean.
+        // Removed border as decided
     },
 });
