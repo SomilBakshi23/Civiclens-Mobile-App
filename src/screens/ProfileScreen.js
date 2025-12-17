@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Modal, ActivityIndicator, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -131,15 +131,20 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
 
                     {/* Theme Toggle */}
-                    <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={toggleTheme}>
+                    {/* Theme Toggle */}
+                    <View style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={[styles.menuIconBox, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.05)' }]}>
                             <Ionicons name={isDarkMode ? "moon-outline" : "sunny-outline"} size={20} color={isDarkMode ? "#F59E0B" : "#F97316"} />
                         </View>
                         <Text style={[styles.menuText, { color: theme.textPrimary }]}>{isDarkMode ? "Dark Mode" : "Light Mode"}</Text>
-                        <View style={{ transform: [{ scale: 0.8 }] }}>
-                            <Ionicons name={isDarkMode ? "toggle" : "toggle-outline"} size={32} color={theme.primary} />
-                        </View>
-                    </TouchableOpacity>
+                        <Switch
+                            trackColor={{ false: "#767577", true: theme.primary }}
+                            thumbColor={isDarkMode ? "#f4f3f4" : "#f4f3f4"}
+                            ios_backgroundColor="#3e3e3e"
+                            onValueChange={toggleTheme}
+                            value={isDarkMode}
+                        />
+                    </View>
 
                     {!isGuest && (
                         <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('EditProfile')}>
