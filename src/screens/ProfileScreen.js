@@ -14,16 +14,15 @@ export default function ProfileScreen({ navigation }) {
     const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
     const { theme, toggleTheme, isDarkMode } = useContext(ThemeContext);
     const [updatingImage, setUpdatingImage] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const handleLogout = () => {
-        Alert.alert(
-            "Log Out",
-            "Are you sure you want to log out?",
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "Log Out", style: "destructive", onPress: () => logout() }
-            ]
-        );
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = () => {
+        setShowLogoutModal(false);
+        logout();
     };
 
     const pickImage = async () => {
@@ -157,6 +156,28 @@ export default function ProfileScreen({ navigation }) {
                 </TouchableOpacity>
 
             </ScrollView>
+            {/* Custom Logout Modal */}
+            <Modal
+                transparent={true}
+                visible={showLogoutModal}
+                animationType="fade"
+                onRequestClose={() => setShowLogoutModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Log Out</Text>
+                        <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowLogoutModal(false)}>
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalLogoutButton} onPress={confirmLogout}>
+                                <Text style={styles.modalLogoutText}>Log Out</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -321,5 +342,69 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginLeft: 8,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '85%',
+        backgroundColor: 'black',
+        padding: 24,
+        borderRadius: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#1E293B',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 12,
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: colors.primary,
+        textAlign: 'center',
+        marginBottom: 24,
+        opacity: 0.9,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        gap: 12,
+    },
+    modalCancelButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalCancelText: {
+        color: colors.primary,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalLogoutButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+        borderWidth: 1,
+        borderColor: '#EF4444',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalLogoutText: {
+        color: '#EF4444',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
