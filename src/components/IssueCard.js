@@ -22,8 +22,12 @@ export default function IssueCard({ title, location, status, time, id, votes, co
                     )}
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>
-                    <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{location} • {id}</Text>
+                    <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
+                        {title}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{location} • {id}</Text>
+                    </View>
                 </View>
             </View>
             <View style={{ alignItems: 'flex-end', marginLeft: 8, gap: 8 }}>
@@ -66,6 +70,17 @@ export function FeedCard({ item }) {
                     <Text style={[styles.deptName, { color: theme.textPrimary }]}>{item.department}</Text>
                     {item.verified && <MaterialCommunityIcons name="check-decagram" size={14} color={theme.primary} style={{ marginLeft: 4 }} />}
                 </View>
+
+                {/* Reporter Trust Signal */}
+                {item.reportedByCivicId && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 4 }}>Reported by: {item.reportedByCivicId}</Text>
+                        {item.reportedByVerified && <MaterialCommunityIcons name="check-decagram" size={12} color="#3B82F6" />}
+                        <View style={{ backgroundColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, marginLeft: 8 }}>
+                            <Text style={{ fontSize: 10, color: 'white', fontWeight: 'bold' }}>{item.reportedByRank || 'Citizen'}</Text>
+                        </View>
+                    </View>
+                )}
 
                 <View style={styles.actions}>
                     <View style={styles.actionGroup}>

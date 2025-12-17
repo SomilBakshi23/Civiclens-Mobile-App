@@ -1,6 +1,6 @@
 // src/services/issueService.js
 import { db } from './firebase';
-import { updateCivicScore, createNotification } from './userService';
+import { updateCivicScore, createNotification, incrementUserReportCount } from './userService';
 import { collection, addDoc, getDocs, updateDoc, doc, increment, serverTimestamp, query, orderBy, arrayUnion, getDoc, getCountFromServer, where } from "firebase/firestore";
 import { calculatePriority } from '../utils/priorityEngine';
 
@@ -55,10 +55,34 @@ let localIssues = [
 ];
 
 export const createIssue = async (issueData) => {
-    // 1. Optimistic Update (Immediate Local Save)
+    // 1. Fetch User Profile to snapshot trust signals
+    let reporterInfo = {
+        reportedByVerified: false,
+        reportedByRank: '🟢 New User',
+        reportedByCivicId: 'Unknown'
+    };
+
+    if (issueData.reportedBy) {
+        try {
+            const userSnap = await getDoc(doc(db, 'users', issueData.reportedBy));
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                reporterInfo = {
+                    reportedByVerified: userData.isVerified || false,
+                    reportedByRank: userData.rank || '🟢 New User',
+                    reportedByCivicId: userData.civicId || 'Unknown'
+                };
+            }
+        } catch (e) {
+            console.error("Error fetching reporter info:", e);
+        }
+    }
+
+    // 2. Optimistic Update (Immediate Local Save)
     const newIssue = {
         id: 'local-' + Date.now(),
         ...issueData,
+        ...reporterInfo, // Snapshot trust signals
         upvotes: 0,
         status: 'open',
         createdAt: new Date(),
@@ -68,10 +92,11 @@ export const createIssue = async (issueData) => {
     };
     localIssues.unshift(newIssue); // Add to top of list
 
-    // 2. Async Backend Save
+    // 3. Async Backend Save
     try {
         const docRef = await addDoc(collection(db, ISSUES_COLLECTION), {
             ...issueData,
+            ...reporterInfo, // Snapshot trust signals
             upvotes: 0,
             status: 'open',
             createdAt: serverTimestamp()
@@ -81,6 +106,7 @@ export const createIssue = async (issueData) => {
         // REWARD: +10 Civic Score
         if (issueData.reportedBy) {
             updateCivicScore(issueData.reportedBy, 10);
+            incrementUserReportCount(issueData.reportedBy); // Update Rank & Stats
             createNotification(issueData.reportedBy, "Civic Score Update", "You earned +10 Civic Score for reporting an issue!");
         }
 
