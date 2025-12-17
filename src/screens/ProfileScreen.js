@@ -32,29 +32,35 @@ export default function ProfileScreen({ navigation }) {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.5,
-        });
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
 
-        if (!result.canceled) {
-            setUpdatingImage(true);
-            const newPhotoURL = result.assets[0].uri;
+            if (!result.canceled) {
+                setUpdatingImage(true);
+                const newPhotoURL = result.assets[0].uri;
 
-            const updateData = {
-                photoURL: newPhotoURL
-            };
+                const updateData = {
+                    photoURL: newPhotoURL
+                };
 
-            const updateResult = await updateUserProfile(user.uid, updateData);
+                const updateResult = await updateUserProfile(user.uid, updateData);
 
-            if (updateResult.success) {
-                await refreshProfile();
-                Alert.alert("Success", "Profile photo updated!");
-            } else {
-                Alert.alert("Error", "Failed to update profile photo.");
+                if (updateResult.success) {
+                    await refreshProfile();
+                    Alert.alert("Success", "Profile photo updated!");
+                } else {
+                    Alert.alert("Error", "Failed to update profile photo.");
+                }
+                setUpdatingImage(false);
             }
+        } catch (error) {
+            console.error("Error picking image:", error);
+            Alert.alert("Error", "Failed to pick image.");
             setUpdatingImage(false);
         }
     };

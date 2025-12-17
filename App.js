@@ -26,6 +26,7 @@ import CivicPreferencesScreen from './src/screens/CivicPreferencesScreen';
 
 import IssueDetailsScreen from './src/screens/IssueDetailsScreen';
 import HelpCenterScreen from './src/screens/HelpCenterScreen';
+import SplashScreen from './src/screens/SplashScreen';
 
 import CustomTabBar from './src/components/CustomTabBar';
 
@@ -107,10 +108,16 @@ function RootNavigator() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
   return (
     <AuthProvider>
       <ThemeProvider>
-        <RootNavigator />
+        {showSplash ? (
+          <SplashScreen onFinish={() => setShowSplash(false)} />
+        ) : (
+          <RootNavigator />
+        )}
       </ThemeProvider>
     </AuthProvider>
   );

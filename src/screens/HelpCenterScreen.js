@@ -6,7 +6,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { colors } from '../theme/colors';
 
 if (Platform.OS === 'android') {
-    if (UIManager.setLayoutAnimationEnabledExperimental) {
+    if (UIManager.setLayoutAnimationEnabledExperimental && !global.nativeFabricUIManager) {
         UIManager.setLayoutAnimationEnabledExperimental(true);
     }
 }
