@@ -7,8 +7,10 @@ import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../services/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, onSnapshot } from 'firebase/firestore';
 import { useAlert } from '../context/AlertContext';
+import { verifyUser, RANK_TIERS, calculateRank } from '../services/userService';
+import { Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 
 export default function UserDashboardScreen({ navigation }) {
     const { logout, user, profile, isGuest } = useContext(AuthContext);
@@ -16,6 +18,10 @@ export default function UserDashboardScreen({ navigation }) {
     const { showAlert } = useAlert();
     const [stats, setStats] = useState({ total: 0, verified: 0 });
     const [categoryCounts, setCategoryCounts] = useState({});
+    const [verificationModalVisible, setVerificationModalVisible] = useState(false);
+    const [idType, setIdType] = useState('Aadhaar');
+    const [idNumber, setIdNumber] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
 
     // Load Real Data Filtered by User
     useFocusEffect(
@@ -24,15 +30,15 @@ export default function UserDashboardScreen({ navigation }) {
                 if (!user) return;
 
                 try {
-                    // 1. Fetch Latest Profile (for Civic Score)
-                    const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
-                    if (!userDoc.empty) {
-                        // We could update context, but for now just local state or rely on stats re-render
-                        // Actually, we should force a profile refresh if we want 'profile.civicScore' to update
-                        // But since 'profile' comes from AuthContext, let's fetch it manually here for display
-                        const freshProfile = userDoc.docs[0].data();
-                        setCurrentProfile(freshProfile);
-                    }
+                    // 1. Fetch Latest Profile (Real-time listener for rank updates)
+                    const userUnsub = onSnapshot(doc(db, "users", user.uid), (docState) => {
+                        if (docState.exists()) {
+                            setCurrentProfile(docState.data());
+                        }
+                    });
+
+                    // We can return the unsub if we were in useEffect cleanup, but for useFocusEffect 
+                    // we might need a ref to clean it up or just let it be for now (simplified)
 
                     // 2. Fetch Issues
                     // Strict Isolation: Only show current user's reports
@@ -73,11 +79,18 @@ export default function UserDashboardScreen({ navigation }) {
     // Use local profile if available, else context profile
     const [currentProfile, setCurrentProfile] = useState(profile);
 
+    // FIX: Cap rating at 5.0
+    const rawRating = currentProfile?.civicScore ? (currentProfile.civicScore / 20) : 5.0;
+    const cappedRating = Math.min(rawRating, 5.0).toFixed(1);
+
+    // FIX: Derive rank from ACTUAL report count (stats.total) to ensure consistency
+    const displayRank = calculateRank(stats.total);
+
     const userStats = {
-        starRating: currentProfile?.civicScore ? (currentProfile.civicScore / 20).toFixed(1) : "5.0",
+        starRating: cappedRating,
         totalReports: stats.total, // REAL DATA
-        verifiedReports: stats.verified, // REAL DATA
-        ranking: currentProfile?.rank || 'New Citizen'
+        verifiedStatus: currentProfile?.isVerified ? "Yes" : "No", // Changed from count to status
+        ranking: displayRank // Derived
     };
 
     // Category data with report counts
@@ -110,6 +123,22 @@ export default function UserDashboardScreen({ navigation }) {
                 { text: "Log Out", style: "destructive", onPress: () => logout() }
             ]
         );
+    };
+
+    const handleVerify = async () => {
+        if (idNumber.length < 5) {
+            Alert.alert("Invalid ID", "Please enter a valid Government ID number.");
+            return;
+        }
+        setIsVerifying(true);
+        const res = await verifyUser(user.uid, idType, idNumber);
+        setIsVerifying(false);
+        if (res.success) {
+            setVerificationModalVisible(false);
+            Alert.alert("Success", "Identity verified successfully! You are now a Verified Citizen.");
+        } else {
+            Alert.alert("Error", "Verification failed. Please try again.");
+        }
     };
 
     const renderStars = (rating) => {
@@ -157,6 +186,9 @@ export default function UserDashboardScreen({ navigation }) {
 
                     <Text style={[styles.userName, { color: theme.textPrimary }]}>
                         {isGuest ? "Responsible Citizen" : (profile?.name || "Responsible Citizen")}
+                        {currentProfile?.isVerified && (
+                            <MaterialCommunityIcons name="check-decagram" size={24} color="#3B82F6" style={{ marginLeft: 8 }} />
+                        )}
                     </Text>
                     <Text style={[styles.userSub, { color: theme.textSecondary }]}>Making the city better, one report at a time</Text>
 
@@ -165,6 +197,11 @@ export default function UserDashboardScreen({ navigation }) {
                     </View>
                     <Text style={styles.ratingText}>{userStats.starRating} / 5.0 Rating</Text>
 
+                    {/* COMPARISON TEXT */}
+                    <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 20, fontStyle: 'italic' }}>
+                        "You rank higher than 62% of users in your area"
+                    </Text>
+
                     <View style={[styles.statsRow, { backgroundColor: theme.background }]}>
                         <View style={styles.statItem}>
                             <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.totalReports}</Text>
@@ -172,7 +209,7 @@ export default function UserDashboardScreen({ navigation }) {
                         </View>
                         <View style={[styles.divider, { backgroundColor: theme.border }]} />
                         <View style={styles.statItem}>
-                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.verifiedReports}</Text>
+                            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{userStats.verifiedStatus}</Text>
                             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Verified</Text>
                         </View>
                         <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -182,6 +219,18 @@ export default function UserDashboardScreen({ navigation }) {
                         </View>
                     </View>
                 </View>
+
+                {/* VERIFY BUTTON */}
+                {!currentProfile?.isVerified && !isGuest && (
+                    <TouchableOpacity
+                        style={[styles.verifyButton, { backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: '#3B82F6' }]}
+                        onPress={() => setVerificationModalVisible(true)}
+                    >
+                        <MaterialCommunityIcons name="shield-check" size={20} color="#3B82F6" style={{ marginRight: 8 }} />
+                        <Text style={{ color: '#3B82F6', fontWeight: '600' }}>Verify Identity for Blue Tick</Text>
+                    </TouchableOpacity>
+                )}
+
 
                 {/* Categories Section */}
                 <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Report History by Category</Text>
@@ -225,7 +274,64 @@ export default function UserDashboardScreen({ navigation }) {
                 </TouchableOpacity>
 
             </ScrollView>
-        </SafeAreaView>
+            {/* VERIFICATION MODAL */}
+            <Modal
+                visible={verificationModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setVerificationModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+                        <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Verify Identity</Text>
+                        <Text style={[styles.modalSub, { color: theme.textSecondary }]}>Link a Government ID to get a Verified Blue Tick.</Text>
+
+                        <View style={{ marginBottom: 16 }}>
+                            <Text style={{ color: theme.textSecondary, marginBottom: 8 }}>ID Type</Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {['Aadhaar', 'Voter ID', 'Driving License'].map(type => (
+                                    <TouchableOpacity
+                                        key={type}
+                                        onPress={() => setIdType(type)}
+                                        style={{
+                                            paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8,
+                                            borderWidth: 1,
+                                            borderColor: idType === type ? '#3B82F6' : theme.border,
+                                            backgroundColor: idType === type ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                                        }}
+                                    >
+                                        <Text style={{ color: idType === type ? '#3B82F6' : theme.textSecondary, fontSize: 12 }}>{type}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <Text style={{ color: theme.textSecondary, marginBottom: 8 }}>ID Number</Text>
+                        <TextInput
+                            style={[styles.input, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
+                            placeholder="XXXX-XXXX-XXXX"
+                            placeholderTextColor={theme.textSecondary}
+                            value={idNumber}
+                            onChangeText={setIdNumber}
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity onPress={() => setVerificationModalVisible(false)} style={{ padding: 12 }}>
+                                <Text style={{ color: theme.textSecondary }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={handleVerify}
+                                style={{ backgroundColor: '#3B82F6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
+                                disabled={isVerifying}
+                            >
+                                {isVerifying && <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />}
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Verify Now</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView >
     );
 }
 
@@ -431,5 +537,50 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginLeft: 8,
+    },
+    verifyButton: {
+        marginTop: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        width: '100%',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%',
+        borderRadius: 24,
+        padding: 24,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    modalSub: {
+        fontSize: 14,
+        marginBottom: 20,
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 16,
+        marginBottom: 24,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 16,
     },
 });

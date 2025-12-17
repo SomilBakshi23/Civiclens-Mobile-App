@@ -36,7 +36,10 @@ export const createUserSkeleton = async (uid, email) => {
             isProfileComplete: false, // MANDATORY FLAG
             createdAt: serverTimestamp(),
             civicScore: 100,
-            role: 'citizen'
+            role: 'citizen',
+            totalReports: 0,
+            rank: '🟢 New User',
+            isVerified: false
         };
 
         await setDoc(userRef, initialProfile);
@@ -102,6 +105,23 @@ export const updateCivicScore = async (uid, change) => {
     }
 };
 
+export const RANK_TIERS = [
+    { threshold: 0, title: 'New User' },
+    { threshold: 2, title: 'Active Reporter' },
+    { threshold: 6, title: 'Trusted Citizen' },
+    { threshold: 16, title: 'Civic Champion' }
+];
+
+export const calculateRank = (totalReports) => {
+    let rank = '🟢 New User';
+    for (const tier of RANK_TIERS) {
+        if (totalReports >= tier.threshold) {
+            rank = tier.title;
+        }
+    }
+    return rank;
+};
+
 /**
  * Creates a notification for the user
  * @param {string} uid 
@@ -122,5 +142,52 @@ export const createNotification = async (uid, title, message) => {
     } catch (error) {
         console.error("Error creating notification:", error);
         return { success: false };
+    }
+};
+
+/**
+ * Verifies the user (Mock)
+ * @param {string} uid 
+ * @param {string} idType 
+ * @param {string} idNumber 
+ */
+export const verifyUser = async (uid, idType, idNumber) => {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, uid);
+        await updateDoc(userRef, {
+            isVerified: true,
+            verifiedAt: serverTimestamp(),
+            verificationDetails: {
+                type: idType,
+                number: idNumber
+            }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error verifying user:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Updates user stats (report count) and recalculates rank
+ * @param {string} uid 
+ */
+export const incrementUserReportCount = async (uid) => {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            const currentTotal = (userSnap.data().totalReports || 0) + 1;
+            const newRank = calculateRank(currentTotal);
+
+            await updateDoc(userRef, {
+                totalReports: currentTotal,
+                rank: newRank
+            });
+        }
+    } catch (error) {
+        console.error("Error updating user stats:", error);
     }
 };

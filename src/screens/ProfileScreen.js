@@ -7,6 +7,9 @@ import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { useAlert } from '../context/AlertContext';
+import { useFocusEffect } from '@react-navigation/native';
+import { db } from '../services/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { updateUserProfile } from '../services/userService';
 
 const { width } = Dimensions.get('window');
@@ -14,8 +17,26 @@ const { width } = Dimensions.get('window');
 export default function ProfileScreen({ navigation }) {
     const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
     const { theme, toggleTheme, isDarkMode } = useContext(ThemeContext);
+
     const { showAlert } = useAlert();
     const [updatingImage, setUpdatingImage] = useState(false);
+    const [localProfile, setLocalProfile] = useState(profile);
+
+    // Sync profile when screen is focused (to get latest verification status)
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!user) return;
+            const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
+                if (doc.exists()) {
+                    setLocalProfile(doc.data());
+                }
+            });
+            return () => unsub();
+        }, [user])
+    );
+
+    // Fallback to localProfile if available, else context profile
+    const displayProfile = localProfile || profile;
 
     const handleLogout = () => {
         showAlert(
@@ -68,9 +89,9 @@ export default function ProfileScreen({ navigation }) {
     };
 
     // Safe access to profile data (Guest fallback)
-    const displayName = profile?.name || (isGuest ? "Guest Citizen" : "Loading...");
-    const displayArea = profile?.area || "CivicLens Community";
-    const displayCivicId = profile?.civicId || (isGuest ? "GUEST-MODE" : "----");
+    const displayName = displayProfile?.name || (isGuest ? "Guest Citizen" : "Loading...");
+    const displayArea = displayProfile?.area || "CivicLens Community";
+    const displayCivicId = displayProfile?.civicId || (isGuest ? "GUEST-MODE" : "----");
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -83,7 +104,7 @@ export default function ProfileScreen({ navigation }) {
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: profile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }} // Avatar from Profile
+                            source={{ uri: displayProfile?.photoURL || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60' }} // Avatar from Profile
                             style={[styles.avatar, { borderColor: theme.surfaceLight }]}
                         />
                         <TouchableOpacity style={[styles.editBadge, { backgroundColor: theme.primary, borderColor: theme.background }]} onPress={pickImage} disabled={updatingImage}>
@@ -91,7 +112,12 @@ export default function ProfileScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.profileInfo}>
-                        <Text style={[styles.name, { color: theme.textPrimary }]}>{displayName}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={[styles.name, { color: theme.textPrimary }]}>{displayName}</Text>
+                            {displayProfile?.isVerified && (
+                                <MaterialCommunityIcons name="check-decagram" size={24} color="#3B82F6" style={{ marginLeft: 6, marginBottom: 4 }} />
+                            )}
+                        </View>
                         <Text style={[styles.location, { color: theme.textSecondary }]}>{user?.email || "No Email"}</Text>
                         <View style={[styles.civicIdBadge, { backgroundColor: theme.infoBg, borderColor: theme.infoBg }]}>
                             <Text style={[styles.civicIdLabel, { color: theme.primary }]}>CIVIC ID: </Text>
