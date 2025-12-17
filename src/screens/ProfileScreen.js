@@ -1,11 +1,12 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { useAlert } from '../context/AlertContext';
 import { updateUserProfile } from '../services/userService';
 
 const { width } = Dimensions.get('window');
@@ -13,21 +14,23 @@ const { width } = Dimensions.get('window');
 export default function ProfileScreen({ navigation }) {
     const { user, profile, logout, isGuest, refreshProfile } = useContext(AuthContext);
     const { theme, toggleTheme, isDarkMode } = useContext(ThemeContext);
+    const { showAlert } = useAlert();
     const [updatingImage, setUpdatingImage] = useState(false);
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const handleLogout = () => {
-        setShowLogoutModal(true);
-    };
-
-    const confirmLogout = () => {
-        setShowLogoutModal(false);
-        logout();
+        showAlert(
+            "Log Out",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Log Out", style: "destructive", onPress: () => logout() }
+            ]
+        );
     };
 
     const pickImage = async () => {
         if (isGuest) {
-            Alert.alert("Guest Mode", "Guests cannot change profile photos.");
+            showAlert("Guest Mode", "Guests cannot change profile photos.");
             return;
         }
 
@@ -51,15 +54,15 @@ export default function ProfileScreen({ navigation }) {
 
                 if (updateResult.success) {
                     await refreshProfile();
-                    Alert.alert("Success", "Profile photo updated!");
+                    showAlert("Success", "Profile photo updated!");
                 } else {
-                    Alert.alert("Error", "Failed to update profile photo.");
+                    showAlert("Error", "Failed to update profile photo.");
                 }
                 setUpdatingImage(false);
             }
         } catch (error) {
             console.error("Error picking image:", error);
-            Alert.alert("Error", "Failed to pick image.");
+            showAlert("Error", "Failed to pick image.");
             setUpdatingImage(false);
         }
     };
@@ -156,28 +159,7 @@ export default function ProfileScreen({ navigation }) {
                 </TouchableOpacity>
 
             </ScrollView>
-            {/* Custom Logout Modal */}
-            <Modal
-                transparent={true}
-                visible={showLogoutModal}
-                animationType="fade"
-                onRequestClose={() => setShowLogoutModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Log Out</Text>
-                        <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowLogoutModal(false)}>
-                                <Text style={styles.modalCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.modalLogoutButton} onPress={confirmLogout}>
-                                <Text style={styles.modalLogoutText}>Log Out</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+
         </SafeAreaView>
     );
 }
@@ -343,68 +325,5 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: 8,
     },
-    // Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: '85%',
-        backgroundColor: 'black',
-        padding: 24,
-        borderRadius: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#1E293B',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.primary,
-        marginBottom: 12,
-    },
-    modalMessage: {
-        fontSize: 16,
-        color: colors.primary,
-        textAlign: 'center',
-        marginBottom: 24,
-        opacity: 0.9,
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-        gap: 12,
-    },
-    modalCancelButton: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalCancelText: {
-        color: colors.primary,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalLogoutButton: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-        borderWidth: 1,
-        borderColor: '#EF4444',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalLogoutText: {
-        color: '#EF4444',
-        fontSize: 16,
-        fontWeight: '600',
-    },
 });
+
