@@ -1,12 +1,14 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
+import { ThemeContext } from './ThemeContext';
 
 const AlertContext = createContext();
 
 export const useAlert = () => useContext(AlertContext);
 
 export const AlertProvider = ({ children }) => {
+    const { theme, isDarkMode } = useContext(ThemeContext);
     const [visible, setVisible] = useState(false);
     const [config, setConfig] = useState({
         title: '',
@@ -49,9 +51,15 @@ export const AlertProvider = ({ children }) => {
                 onRequestClose={hideAlert}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        {config.title ? <Text style={styles.modalTitle}>{config.title}</Text> : null}
-                        {config.message ? <Text style={styles.modalMessage}>{config.message}</Text> : null}
+                    <View style={[
+                        styles.modalContent,
+                        {
+                            backgroundColor: isDarkMode ? 'black' : theme.surface,
+                            borderColor: theme.border
+                        }
+                    ]}>
+                        {config.title ? <Text style={[styles.modalTitle, { color: theme.primary }]}>{config.title}</Text> : null}
+                        {config.message ? <Text style={[styles.modalMessage, { color: theme.primary }]}>{config.message}</Text> : null}
 
                         <View style={styles.modalButtons}>
                             {config.buttons.map((btn, index) => {
@@ -60,22 +68,36 @@ export const AlertProvider = ({ children }) => {
 
                                 let buttonStyle = styles.modalButton;
                                 let textStyle = styles.modalButtonText;
+                                let dynamicButtonStyle = { borderColor: theme.primary };
+                                let dynamicTextStyle = { color: theme.primary };
 
                                 if (isDestructive) {
                                     buttonStyle = styles.destructiveButton;
                                     textStyle = styles.destructiveText;
+                                    dynamicButtonStyle = {
+                                        borderColor: theme.error,
+                                        backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.2)' : theme.errorBg
+                                    };
+                                    dynamicTextStyle = { color: theme.error };
                                 } else if (isCancel) {
                                     buttonStyle = styles.cancelButton;
                                     textStyle = styles.cancelText;
+                                    dynamicButtonStyle = { borderColor: theme.primary };
+                                    dynamicTextStyle = { color: theme.primary };
+                                    // Maybe different for light mode? Blue cancel is fine.
                                 }
 
                                 return (
                                     <TouchableOpacity
                                         key={index}
-                                        style={[buttonStyle, { flex: 1, marginHorizontal: 4 }]}
+                                        style={[
+                                            buttonStyle,
+                                            dynamicButtonStyle,
+                                            { flex: 1, marginHorizontal: 4 }
+                                        ]}
                                         onPress={() => handleButtonPress(btn.onPress)}
                                     >
-                                        <Text style={textStyle}>{btn.text}</Text>
+                                        <Text style={[textStyle, dynamicTextStyle]}>{btn.text}</Text>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -96,23 +118,19 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         width: '85%',
-        backgroundColor: 'black', // Black background
         padding: 24,
         borderRadius: 16,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#1E293B',
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: colors.primary, // Blue Title
         marginBottom: 12,
         textAlign: 'center',
     },
     modalMessage: {
         fontSize: 16,
-        color: colors.primary, // Blue Message
         textAlign: 'center',
         marginBottom: 24,
         opacity: 0.9,
@@ -130,13 +148,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         minWidth: 80,
     },
     modalButtonText: {
-        color: colors.primary,
         fontWeight: '600',
         fontSize: 16,
     },
@@ -146,13 +162,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         minWidth: 80,
     },
     cancelText: {
-        color: colors.primary,
         fontWeight: '600',
         fontSize: 16,
     },
@@ -161,15 +175,12 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 10,
-        backgroundColor: 'rgba(239, 68, 68, 0.2)', // Red bg tint
         borderWidth: 1,
-        borderColor: '#EF4444',
         alignItems: 'center',
         justifyContent: 'center',
         minWidth: 80,
     },
     destructiveText: {
-        color: '#EF4444',
         fontWeight: '600',
         fontSize: 16,
     },
