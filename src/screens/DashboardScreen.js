@@ -122,9 +122,7 @@ export default function DashboardScreen({ navigation }) {
 
             </ScrollView>
 
-            <TouchableOpacity style={styles.fab}>
-                <Ionicons name="add" size={32} color="white" />
-            </TouchableOpacity>
+
         </SafeAreaView>
     );
 }
@@ -273,20 +271,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
 
-    // FAB
-    fab: {
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#3B82F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#3B82F6',
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        elevation: 8,
-    },
+
 });
